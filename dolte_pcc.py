@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+from lte import lte
+from noisegen import noisegen, rms
+import numpy as np
+
+pre = 'PCC'
+noiseiter = 25
+img12   = '../PCC_12mTP_12CO21.pbcor.K.fits.gz'
+img13   = '../PCC_12mTP_13CO21.pbcor.K.fits.gz'
+flat12  = '../PCC_12mTP_12CO21.image.K.fits.gz'
+flat13  = '../PCC_12mTP_13CO21.image.K.fits.gz'
+gain12  = '../PCC_12mTP_12CO21.flux1.fits'
+gain13  = '../PCC_12mTP_13CO21.flux1.fits'
+rms12   = '../PCC_12mTP_12CO_dil.rms.fits'
+rms13   = '../PCC_12mTP_13CO_dil.rms.fits'
+mask12  = '../PCC_12mTP_12CO_dil.mask.fits.gz'
+
+lte_names   = [img12, img13, rms12, rms13, mask12]
+lte(files = lte_names, tfloor = 8, datainfo = pre, tx_method = 'cube')
+
+# Using noisegen function creates random data from 12CO and 13CO data sets
+out12   = pre + '_12CO21.noiseadd.fits.gz'
+out13   = pre + '_13CO21.noiseadd.fits.gz'
+noisegen(incube = flat12, gainname = gain12, outname = out12, number = noiseiter)
+noisegen(incube = flat13, gainname = gain13, outname = out13, number = noiseiter)
+
+# Using lte function creates only 13CO column density images from noisegen-created randomized data sets
+for n in range(noiseiter):
+    cube12      = pre + '_12CO21.noiseadd.' + str(n + 1) + '.fits.gz'
+    cube13      = pre + '_13CO21.noiseadd.' + str(n + 1) + '.fits.gz'
+    temperature = (6 * np.random.rand()) + 6 # Returns a randomized temperature in range 6 - 12 K
+    info        = pre + '_noise_' + str(n + 1)
+    lte_names   = [cube12, cube13, rms12, rms13, mask12]
+    lte(files = lte_names, tfloor = temperature, datainfo = info, tx_method = 'cube', onlywrite = ['outn13cube'])
+
+# Using rms function creates a root-mean-square image based on lte-created 13CO column density images from random data
+rms_names = [pre+'_noise_'+str(n+1)+'_cube_n13cube.fits.gz' for n in range(noiseiter)]
+noiseout  = pre + '_noise_rms_cube_n13cube.fits.gz'
+rms(names = rms_names, outname = noiseout)
