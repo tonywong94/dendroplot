@@ -1,4 +1,4 @@
-# Written in Python 3.5.2
+# Written for Python 3.5.2
 # Originally authored by Evan Wojciechowski, based on scripts by Chaoyue Cui and Tony Wong
 # Function file that is built to be called by script files; will take data from fits files and plot histograms of the data
 # Derived from similar script histomom.py

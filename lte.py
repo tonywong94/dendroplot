@@ -1,5 +1,6 @@
 # Written for Python 3.5.2
 # Based on various previous iterations of lte.py scripts written by Tony Wong and Evan Wojciechowski
+# Approximates an LTE (local thermdynamic equilibrium) mass to determine the amount of CO12 and CO13 is present in a given region of the sky
 
 from astropy.io import fits
 from astropy import constants as const
@@ -12,7 +13,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
     # tx_methods accounted for are 'cube' and 'peak'
     # datainfo should provide info on what source data is from and possibly a number corresponding to some form of iteration
 
-    # Declatarions of input and output files
+    # Declarations of input and output files
 
     incube12 = files[0]
     incube13 = files[1]
@@ -34,7 +35,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
     t12cube, hd3d = fits.getdata(incube12, header = True)
     print('min/max values of 12CO [K] are {0} and {1}\n'.format(np.nanmin(t12cube), np.nanmax(t12cube)))
 
-    # Load 12CO undertainty [2D plane]
+    # Load 12CO uncertainty [2D plane]
     print('Reading {0}...'.format(inrms12))
     t12err, hd2d = fits.getdata(inrms12, header = True)
     print('min/max values of 12CO uncertainty are {0} and {1}\n'.format(np.nanmin(t12err), np.nanmax(t12err)))
@@ -154,7 +155,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
     masksum = np.nansum(mask, axis = 0)
     with np.errstate(all = 'ignore'):
 #       n13colerr = np.nansum(n13ecube, axis = 0) * (hd3d['cdelt3']/1000.) * u.km/u.s / np.sqrt(masksum)
-        n13colerr = np.sqrt(np.nansum(n13ecube**2, axis = 0)) * (hd3d['cdelt3']/1000.) * u.km/u.s
+        n13colerr = np.sqrt(np.nansum(n13ecube**2, axis = 0)) * (hd3d['cdelt3']/1000.) * u.km/u.s # ?? / np.sqrt(masksum)
 
     # Apply 2D mask
     print('Applying mask to column density and error...')

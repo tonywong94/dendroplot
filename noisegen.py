@@ -1,3 +1,7 @@
+# Written by Tony Wong and Evan Wojciechowski
+# Combined noise generation and rms calculation script
+# Contains functinos noisegen and rms
+
 from astropy.convolution import convolve_fft
 from astropy.io import fits
 from astropy.stats import mad_std
