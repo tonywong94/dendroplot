@@ -40,12 +40,12 @@ noiseout2  = pre + '_noise_rms_cube_n13col.fits.gz'
 rms(names = rms_names1, outname = noiseout1)
 rms(names = rms_names2, outname = noiseout2)
 
-xname1 = '30dor_cube_n13cube.fits.gz'
-xname2 = '30dor_cube_n13col.fits.gz'
+xname1 = '../lte/30dor_cube_n13cubeerr.fits.gz'
+xname2 = '../lte/30dor_cube_n13colerr.fits.gz'
 yname1 = '30dor_noise_rms_cube_n13cube.fits.gz'
 yname2 = '30dor_noise_rms_cube_n13col.fits.gz'
 oname1 = '30dor_noise_25_trandom_n13cube.fits.gz'
 oname2 = '30dor_noise_25_trandom_n13col.fits.gz'
 
-histplot(xname = xname1, yname = yname1, snrcut = 0, dolog2d = False, dolog1d = False, nbins = 100, outname = oname1)
+histplot(xname = xname1, yname = yname1, snrcut = 0, dolog2d = False, dolog1d = False, nbins = 100, outname = oname1, extrema = [0, 0, 2.1e15, 2.1e15])
 histplot(xname = xname2, yname = yname2, snrcut = 0, dolog2d = False, dolog1d = False, nbins = 100, outname = oname2)
