@@ -72,7 +72,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
             cat[col].unit = 'solMass'
         elif col == 'siglte':
             cat[col] /= cat['area_pc2']
-            cat[col].unit = 'solMass/pc@'
+            cat[col].unit = 'solMass/pc2'
         else:
             cat[col] /= cat['mlte']
     cat.write(label+'_physprop_add.txt', format='ascii.ecsv')
