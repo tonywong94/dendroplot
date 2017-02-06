@@ -73,6 +73,10 @@ def std_overlay(cat, xaxis, yaxis, xlims, ylims):
         xname = 'virial mass'
     elif xaxis == 'mlte':
         xname = 'LTE mass'
+    elif xaxis == 'siglum':
+        xname = r'$\Sigma$, CO-based'
+    elif xaxis == 'siglte':
+        xname = r'$\Sigma$, LTE-based'
     else:
         xname = xaxis
     if yaxis == 'rad_pc':
@@ -85,6 +89,16 @@ def std_overlay(cat, xaxis, yaxis, xlims, ylims):
         yname = 'luminous mass'
     elif yaxis == 'mvir':
         yname = 'virial mass'
+    # Plot lines of constant external pressure when sigvir is on y-axis
+    elif yaxis == 'sigvir':
+        xmod = np.logspace(xlims[0],xlims[1],100)
+        ymod = xmod + (20/(3*np.pi*21.1))*1.e4/xmod
+        axes.plot(xmod, ymod, linestyle='-', color='g')
+        axes.text(10**-0.6, 10**3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', color='g', rotation=-45)
+        ymod2 = xmod + (20/(3*np.pi*21.1))*1.e2/xmod
+        axes.plot(xmod, ymod2, linestyle='-', color='m')
+        axes.text(10**-0.95, 10**1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', color='m', rotation=-45)
+        yname = r'$\Sigma$, virial'
     else:
         yname = yaxis
     # If axes have identical units then plot y=x line
