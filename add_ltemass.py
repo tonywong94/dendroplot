@@ -74,7 +74,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
        
         if col == 'mlte':
             cat[col].unit = 'solMass'
-        if col == 'siglte':
+        elif col == 'siglte':
             cat[col] /= cat['area_pc2']
             cat[col].unit = 'solMass/pc2'
         else:
