@@ -37,14 +37,21 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
     cat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
     srclist = cat['_idx'].tolist()
-    for col in ['mlte', 'e_mlte', 'e_mlte_alt']:
+    for col in ['mlte', 'e_mlte', 'siglte', 'e_siglte', 'e_mlte_alt']:
         cat[col] = np.zeros(np.size(srclist))
+        
         if col == 'mlte':
             data = getdata(n13cub)
             cat[col].description = 'LTE mass using H2/13CO='+str(co13toh2)
         elif col == 'e_mlte':
             data = getdata(n13cub_uc[0])
             cat[col].description = 'fractional unc in mlte'
+        elif col == 'siglte':
+            data == getdata(n13cub)
+            cat[col].description = 'LTE mass divided by area in pc2'
+        elif col == 'e_siglte':
+            data = getdata(n13cub_uc[0])
+            cat[col].description = 'fractional unc in siglte [same as e_lte]'
         elif col == 'e_mlte_alt':
             if len(n13cub_uc) > 1:
                 data = getdata(n13cub_uc[1])
@@ -52,19 +59,25 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
             else:
                 cat.remove_column(col)
                 break
+        
         for i, c in enumerate(srclist):
             mask = d[c].get_mask()
-            if col == 'mlte':
+            if (col == 'mlte' or col == 'siglte'):
                 cat[col][i] = np.nansum(data[np.where(mask)])
             else:
-                cat[col][i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp
+                cat[col][i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
+        
         # Multiply by channel width in km/s and area in cm^2 to get molecule number 
         cat[col] *= deltav * pix2cm.value**2
         # Convert from molecule number to mass including He
         cat[col] *= co13toh2 * 2 * 1.36 * const.m_p / const.M_sun
+       
         if col == 'mlte':
             cat[col].unit = 'solMass'
+        if col == 'siglte':
+            cat[col] /= cat['area_pc2']
+            cat[col].unit = 'solMass/pc2'
         else:
             cat[col] /= cat['mlte']
-    cat.write(label+'_physprop_add.txt', format='ascii.ecsv')
 
+    cat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
