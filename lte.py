@@ -71,7 +71,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
         hdtx['datamax'] = np.nanmax(tex)
         hdtx['tfloor'] = tfloor
         fits.writeto(outtex12, tex, hdtx, clobber = True)
-        print('File {0} successfully written'.format(outtex12))
+        print('File {0} successfully written\n'.format(outtex12))
 
     # Load 13CO cube [units K]
     print('Reading {0}...'.format(incube13))
@@ -81,7 +81,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
     # Load 13CO uncertainty [2D plane]
     print('Reading {0}...'.format(inrms13))
     t13err, hd2d = fits.getdata(inrms13, header = True)
-    print('min/max values of 13CO undertainty are {0} and {1}\n'.format(np.nanmin(t13err), np.nanmax(t13err)))
+    print('min/max values of 13CO uncertainty are {0} and {1}\n'.format(np.nanmin(t13err), np.nanmax(t13err)))
 
     # Calculates 13CO optical depth cube
     with np.errstate(invalid = 'ignore'):
@@ -95,7 +95,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
         hd3d['bunit'] = ''
         hd3d['tfloor'] = tfloor
         fits.writeto(outtau13, tau13, hd3d, clobber = True)
-        print('File {0} successfully written'.format(outtau13))
+        print('File {0} successfully written\n'.format(outtau13))
 
     # Uncertainty of 13CO optical depth [linear approximation]
     print('Calculating error in tau13...')
@@ -104,11 +104,11 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
 
     if (len(onlywrite) == 0) or ('outtau13err' in onlywrite) == True:
         hdtx['datamin'] = np.nanmin(tau13err)
-        hdtx['datamin'] = np.nanmax(tau13err)
+        hdtx['datamax'] = np.nanmax(tau13err)
         hdtx['bunit'] = ''
         hdtx['tfloor'] = tfloor
         fits.writeto(outtau13err, tau13err, hdtx, clobber = True)
-        print('File {0} successfully written'.format(outtau13err))
+        print('File {0} successfully written\n'.format(outtau13err))
 
     # Calculates 13CO column density and error cubes
     print('Calculating the 13CO column density and error...\n')
@@ -140,14 +140,14 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
         hd3d['bunit'] = 'cm^-2 / (km/s)'
         hd3d['tfloor'] = tfloor
         fits.writeto(outn13cube, n13, hd3d, clobber = True)
-        print('File {0} successfully written'.format(outn13cube))
+        print('File {0} successfully written\n'.format(outn13cube))
 
     if (len(onlywrite) == 0) or ('outn13cubeerr' in onlywrite) == True:
         hd3d['datamin'] = np.nanmin(n13ecube).value
         hd3d['datamax'] = np.nanmax(n13ecube).value
         hd3d['tfloor'] = tfloor
         fits.writeto(outn13cubeerr, n13ecube, hd3d, clobber = True)
-        print('File {0} successfully written'.format(outn13cubeerr))
+        print('File {0} successfully written\n'.format(outn13cubeerr))
 
     # Make integrated column density and error maps
     print('Calculating integrated column density and error...')
@@ -171,7 +171,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
         hd2d['bunit'] = 'cm^-2'
         hd2d['tfloor'] = tfloor
         fits.writeto(outn13col, n13col, hd2d, clobber = True)
-        print('File {0} successfully written'.format(outn13col))
+        print('File {0} successfully written\n'.format(outn13col))
 
     if (len(onlywrite) == 0) or ('outn13colerr' in onlywrite) == True:
         hd2d['datamin'] = np.nanmin(n13colerr).value
@@ -190,7 +190,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
         hd2d['bunit'] = ''
         hd2d['tfloor'] = tfloor
         fits.writeto(outsnr13, n13snr, hd2d, clobber = True)
-        print('File {0} successfully written'.format(outsnr13))
+        print('File {0} successfully written\n'.format(outsnr13))
 
 
 ### END OF FILE ###
