@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from radio_beam.beam import Beam
 
-def noisegen(incube, gainname, outname='30Dor_13CO21.noiseadd.fits.gz', number = 1, 
+def noisegen(incube, gainname = '', outname='30Dor_13CO21.noiseadd.fits.gz', number = 1, 
     verbose = False, tomake = False):
     """
     From an input cube (with noise included) generate noise-added cubes
@@ -35,9 +35,10 @@ def noisegen(incube, gainname, outname='30Dor_13CO21.noiseadd.fits.gz', number =
         print('\nShape of data: {0}'.format(indata.shape))
 
     # Reads gain values
-    gain = fits.getdata(gainname)
-    if verbose == True:
-        print('\nShape of gain: {0}\n'.format(gain.shape))
+    if gainname != '':
+        gain = fits.getdata(gainname)
+        if verbose == True:
+            print('\nShape of gain: {0}\n'.format(gain.shape))
 
     # Creates beam class
     bm = Beam.from_fits_header(inheader)
@@ -81,7 +82,8 @@ def noisegen(incube, gainname, outname='30Dor_13CO21.noiseadd.fits.gz', number =
         # Adds random noise to input data and writes a new fits image
         outdata = indata + (random_data * rmask) / noise_rms
         noiseout = mad_std(outdata[~np.isnan(outdata)])
-        outdata = outdata / gain
+        if gainname!= '':
+            outdata = outdata / gain
         inheader['DATAMIN'] = np.nanmin(outdata)
         inheader['DATAMAX'] = np.nanmax(outdata)
         addout = outname.replace('.fits', '.'+str(n + 1)+'.fits')
