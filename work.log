@@ -1,2 +1,5 @@
 Feb 9, 2017:
 tw: examined the 30dor_cube_n13cubeerr.fits.gz file which shows a funny saw-tooth image histogram.  This seems to be a result of the 8K floor on Tex.  Larger Tex values seem to produce smaller errors, leading to the secondary histogram to the left.  Also, the linear approximation breaks down at larger values of T13, causing n13cubeerr to be lower than the error derived by the rms method.
+jb: alignment of images in reproject is producing small errors in the mask (blanked region) which leads to small differences in flux.  May be related to the interpolation scheme.  Convolve in Python is systematically offset from IDL convolve (looks like a multiplicative factor).  However the difference is small.  Will join the Github repository to get access to LTE calculations.
+ew: Adding siglte and error to table; making new property correlation plots.
+Next week: Go over property plots including siglte, set up dendrogram runs for archival data.
