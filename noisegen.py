@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Written by Tony Wong and Evan Wojciechowski
 # Combined noise generation and rms calculation script
 # Contains functinos noisegen and rms

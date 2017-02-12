@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import numpy as np
 from astropy import units as u
@@ -81,6 +81,3 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
             cat[col] /= cat['mlte']
 
     cat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
-
-
-# End of file test comment

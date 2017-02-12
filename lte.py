@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Written for Python 3.5.2
 # Based on various previous iterations of lte.py scripts written by Tony Wong and Evan Wojciechowski
 # Approximates an LTE (local thermdynamic equilibrium) mass to determine the amount of CO12 and CO13 is present in a given region of the sky
