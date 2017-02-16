@@ -3,3 +3,6 @@ tw: examined the 30dor_cube_n13cubeerr.fits.gz file which shows a funny saw-toot
 jb: alignment of images in reproject is producing small errors in the mask (blanked region) which leads to small differences in flux.  May be related to the interpolation scheme.  Convolve in Python is systematically offset from IDL convolve (looks like a multiplicative factor).  However the difference is small.  Will join the Github repository to get access to LTE calculations.
 ew: Adding siglte and error to table; making new property correlation plots.
 Next week: Go over property plots including siglte, set up dendrogram runs for archival data.
+
+Feb 16:
+jb: lte.py script seems to work, need to reorganize directory structure.  Continue with run_scimes.py (doscimes_gmc225.py) to generate property plots.  Simplify align+convolve+plot.py to just do the convolve and plot steps.
