@@ -127,6 +127,13 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     dist    = distpc * u.pc
     freq    = fghz * u.GHz
 
+    # checks/creates directory to place plots
+    if os.path.exists('plots') == 0:
+        os.makedirs('plots')
+
+    label = 'plots/' + label
+
+
     params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
 #    params = {'mathtext.default': 'regular' }          
     plt.rcParams.update(params)

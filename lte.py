@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Written for Python 3.5.2
+# Original written in Python 3.5.2
 # Based on various previous iterations of lte.py scripts written by Tony Wong and Evan Wojciechowski
 # Approximates an LTE (local thermdynamic equilibrium) mass to determine the amount of CO12 and CO13 is present in a given region of the sky
 
@@ -8,6 +8,7 @@ from astropy.io import fits
 from astropy import constants as const
 from astropy import units as u
 import numpy as np
+import os
 import sys
 
 def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
@@ -23,14 +24,18 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
     inrms13  = files[3]
     inmask12 = files[4]
 
-    outtex12      = datainfo + '_' + tx_method + '_tex12.fits.gz'
-    outtau13      = datainfo + '_' + tx_method + '_tau13.fits.gz'
-    outtau13err   = datainfo + '_' + tx_method + '_tau13err.fits.gz'
-    outn13cube    = datainfo + '_' + tx_method + '_n13cube.fits.gz'
-    outn13cubeerr = datainfo + '_' + tx_method + '_n13cubeerr.fits.gz'
-    outn13col     = datainfo + '_' + tx_method + '_n13col.fits.gz'
-    outn13colerr  = datainfo + '_' + tx_method + '_n13colerr.fits.gz'
-    outsnr13      = datainfo + '_' + tx_method + '_n13snr.fits.gz'
+    # output files piped into subdirectory, which is created if it does not already exists
+    if os.path.exists('lte') == 0:
+        os.makedirs('lte')
+
+    outtex12      = 'lte/' + datainfo + '_' + tx_method + '_tex12.fits.gz'
+    outtau13      = 'lte/' + datainfo + '_' + tx_method + '_tau13.fits.gz'
+    outtau13err   = 'lte/' + datainfo + '_' + tx_method + '_tau13err.fits.gz'
+    outn13cube    = 'lte/' + datainfo + '_' + tx_method + '_n13cube.fits.gz'
+    outn13cubeerr = 'lte/' + datainfo + '_' + tx_method + '_n13cubeerr.fits.gz'
+    outn13col     = 'lte/' + datainfo + '_' + tx_method + '_n13col.fits.gz'
+    outn13colerr  = 'lte/' + datainfo + '_' + tx_method + '_n13colerr.fits.gz'
+    outsnr13      = 'lte/' + datainfo + '_' + tx_method + '_n13snr.fits.gz'
 
     # Load 12CO cube [units K]
     print('Reading {0}...'.format(incube12))
