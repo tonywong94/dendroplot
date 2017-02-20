@@ -11,31 +11,47 @@ import numpy as np
 import os
 import sys
 
-def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = []):
+def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], cd = ''):
 
     # tx_methods accounted for are 'cube' and 'peak'
     # datainfo should provide info on what source data is from and possibly a number corresponding to some form of iteration
 
-    # Declarations of input and output files
+    for f in files:
+        if os.path.exists(f) == 1:
+            print('Found {}...'.format(f))
+            continue
+        else
+            print('File {} does not exist'.format(f))
+            return
 
+    # Declarations of input and output files
     incube12 = files[0]
     incube13 = files[1]
     inrms12  = files[2]
     inrms13  = files[3]
     inmask12 = files[4]
 
-    # output files piped into subdirectory, which is created if it does not already exists
-    if os.path.exists('lte') == 0:
-        os.makedirs('lte')
+    outtex12      = datainfo + '_' + tx_method + '_tex12.fits.gz'
+    outtau13      = datainfo + '_' + tx_method + '_tau13.fits.gz'
+    outtau13err   = datainfo + '_' + tx_method + '_tau13err.fits.gz'
+    outn13cube    = datainfo + '_' + tx_method + '_n13cube.fits.gz'
+    outn13cubeerr = datainfo + '_' + tx_method + '_n13cubeerr.fits.gz'
+    outn13col     = datainfo + '_' + tx_method + '_n13col.fits.gz'
+    outn13colerr  = datainfo + '_' + tx_method + '_n13colerr.fits.gz'
+    outsnr13      = datainfo + '_' + tx_method + '_n13snr.fits.gz'
 
-    outtex12      = 'lte/' + datainfo + '_' + tx_method + '_tex12.fits.gz'
-    outtau13      = 'lte/' + datainfo + '_' + tx_method + '_tau13.fits.gz'
-    outtau13err   = 'lte/' + datainfo + '_' + tx_method + '_tau13err.fits.gz'
-    outn13cube    = 'lte/' + datainfo + '_' + tx_method + '_n13cube.fits.gz'
-    outn13cubeerr = 'lte/' + datainfo + '_' + tx_method + '_n13cubeerr.fits.gz'
-    outn13col     = 'lte/' + datainfo + '_' + tx_method + '_n13col.fits.gz'
-    outn13colerr  = 'lte/' + datainfo + '_' + tx_method + '_n13colerr.fits.gz'
-    outsnr13      = 'lte/' + datainfo + '_' + tx_method + '_n13snr.fits.gz'
+    if cd != '':
+        if os.path.exists(cd) == 1:
+            print('Found {}, changing directory...'.format(cd))
+            os.chdir(cd)
+        else:
+            print('Directory {} doesn\'t exist, creating and changing...'.format(cd))
+            os.mkdir(cd)
+            os.chdir(cd)
+
+        outs = [outtex12, outtau13, outtau13err, outn13cube, outn13cubeerr, outn13col, outn13colerr, outsnr13]
+        for o in outs:
+            o = cd + '/' + o
 
     # Load 12CO cube [units K]
     print('Reading {0}...'.format(incube12))
