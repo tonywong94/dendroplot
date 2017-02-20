@@ -20,7 +20,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
         if os.path.exists(f) == 1:
             print('Found {}...'.format(f))
             continue
-        else
+        else:
             print('File {} does not exist'.format(f))
             return
 
