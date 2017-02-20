@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2.7
 
 # WIP script based on mass_spec.py by Tony Wong
 # generalized histogram maker of any column from xxx_physprop_add.txt
@@ -76,8 +76,8 @@ def prop_hist(label, dolog = True, val = 'mvir'):
     axes.set_ylabel('Number')
 
     plt.legend(loc = 'best', fontsize = 'medium')
-    plt.show()
-    #plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
+    #plt.show()
+    plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
     plt.close()
 
     return
