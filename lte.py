@@ -15,12 +15,22 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
 
     # tx_methods accounted for are 'cube' and 'peak'
     # datainfo should provide info on what source data is from and possibly a number corresponding to some form of iteration
+    
+    if cd != '':
+        if os.path.exists(cd) == 1:
+            print('Found {}, changing directory...'.format(cd))
+            os.chdir(cd)
+        else:
+            print('Directory {} doesn\'t exist, creating and changing...\n'.format(cd))
+            os.mkdir(cd)
+            os.chdir(cd)
 
+    # file paths need to be absolute or defined properly in relation to working directory
     for f in files:
         if os.path.exists(f) == 1:
             print('Found {}...'.format(f))
             continue
-        else
+        else:
             print('File {} does not exist'.format(f))
             return
 
@@ -39,19 +49,6 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     outn13col     = datainfo + '_' + tx_method + '_n13col.fits.gz'
     outn13colerr  = datainfo + '_' + tx_method + '_n13colerr.fits.gz'
     outsnr13      = datainfo + '_' + tx_method + '_n13snr.fits.gz'
-
-    if cd != '':
-        if os.path.exists(cd) == 1:
-            print('Found {}, changing directory...'.format(cd))
-            os.chdir(cd)
-        else:
-            print('Directory {} doesn\'t exist, creating and changing...'.format(cd))
-            os.mkdir(cd)
-            os.chdir(cd)
-
-        outs = [outtex12, outtau13, outtau13err, outn13cube, outn13cubeerr, outn13col, outn13colerr, outsnr13]
-        for o in outs:
-            o = cd + '/' + o
 
     # Load 12CO cube [units K]
     print('Reading {0}...'.format(incube12))
