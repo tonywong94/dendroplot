@@ -54,7 +54,10 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
     else:
         print "\nWarning: Unrecognized brightness unit"
     metadata['vaxis'] = 0
-    freq = hd3['restfrq'] * u.Hz
+    if 'RESTFREQ' in hd3.keys():
+        freq = hd3['RESTFREQ'] * u.Hz
+    elif 'RESTFRQ' in hd3.keys():
+        freq = hd3['RESTFRQ'] * u.Hz
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
     metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
     metadata['velocity_scale'] =  hd3['cdelt3'] * u.meter / u.second

@@ -20,7 +20,7 @@ mask12  = '../mom/PCC_12mTP_12CO_dil.mask.fits.gz'
 # Uses lte function/script to create a set of lte images from original images
 lte_names   = [img12, img13, rms12, rms13, mask12]
 
-lte(files = lte_names, tfloor = 8, datainfo = pre, tx_method = 'cube')
+lte(files = lte_names, tfloor = 8, datainfo = pre, tx_method = 'cube', cd='../lte')
 
 # Using noisegen function from noisegen script to create random data from 12CO and 13CO data sets
 # Runs noisegen function twice: first on 12CO, second on 13CO

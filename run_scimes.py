@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python2.7
 
 import os
 import csv
@@ -45,11 +45,19 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111)            
-    ax.set_yscale('log')
+    #ax.set_yscale('log')
     ax.set_xlabel('Structure')
     ax.set_ylabel('Intensity ['+hd3['BUNIT']+']')
     p = d.plotter()
-    p.plot_tree(ax, color='black')
+    branch = [s for s in d.all_structures if s not in d.leaves and s not in d.trunk]
+    tronly = [s for s in d.trunk if s not in d.leaves]
+    for st in tronly:
+        p.plot_tree(ax, structure=[st], color='brown', lw=1)
+    for st in branch:
+        p.plot_tree(ax, structure=[st], color='black', lw=1)
+    for st in d.leaves:
+        p.plot_tree(ax, structure=[st], color='green', lw=1)
+    #p.plot_tree(ax, color='black')
     plt.savefig(label+'_dendrogram.pdf')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
@@ -64,7 +72,10 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     else:
         print "Warning: Unrecognized brightness unit"
     metadata['vaxis'] = 0
-    freq = hd3['restfrq'] * u.Hz
+    if 'RESTFREQ' in hd3.keys():
+        freq = hd3['RESTFREQ'] * u.Hz
+    elif 'RESTFRQ' in hd3.keys():
+        freq = hd3['RESTFRQ'] * u.Hz
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
     metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
     metadata['velocity_scale'] =  hd3['cdelt3'] * u.meter / u.second
