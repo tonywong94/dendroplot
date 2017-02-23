@@ -58,7 +58,7 @@ def prop_hist(label, dolog = True, val = 'mvir'):
     max_edge = 4
     N = (max_edge - min_edge) / bin_size
     bin_list = np.linspace(min_edge, max_edge, N + 1)
-    print(bin_list)
+    #print(bin_list)
     pltdata = []
     for i in range(len(types)):
         data  = pcat[val][idc[i]]
@@ -71,13 +71,15 @@ def prop_hist(label, dolog = True, val = 'mvir'):
     minorLocator = MultipleLocator(bin_size)
     #axes.xaxis.set_major_locator(majorLocator)
     #axes.xaxis.set_minor_locator(minorLocator)
-    plt.xticks(bin_list)
+    plt.xticks(bin_list + bin_size/2)
+    axes.tick_params(labelsize = 6)
     axes.set_xlabel('log ' + val + ' [' + str(pcat[val].unit) + ']')
     axes.set_ylabel('Number')
 
     plt.legend(loc = 'best', fontsize = 'medium')
     #plt.show()
-    plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
+    #plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
+    plt.savefig('newticks3hist.pdf', bbox_inches = 'tight')
     plt.close()
 
     return
