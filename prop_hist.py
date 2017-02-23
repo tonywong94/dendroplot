@@ -78,8 +78,7 @@ def prop_hist(label, dolog = True, val = 'mvir'):
 
     plt.legend(loc = 'best', fontsize = 'medium')
     #plt.show()
-    #plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
-    plt.savefig('newticks3hist.pdf', bbox_inches = 'tight')
+    plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
     plt.close()
 
     return
