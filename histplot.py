@@ -17,6 +17,15 @@ import os.path as op
 def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbins=100, outname = '', extrema = []):
 	# xname and yname are the two necessary inputs
 
+    if cd != '':
+        if os.path.exists(cd) == 1:
+            print('Found {}, changing directory...'.format(cd))
+            os.chdir(cd)
+        else:
+            print('Directory {} doesn\'t exist, creating and changing...\n'.format(cd))
+            os.mkdir(cd)
+            os.chdir(cd)
+
 	####### Data aquisition and error modification #######
 
 	# Checks if file names are provided

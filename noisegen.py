@@ -10,10 +10,11 @@ from astropy.stats import mad_std
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from radio_beam.beam import Beam
 
 def noisegen(incube, gainname = '', outname='30Dor_13CO21.noiseadd.fits.gz', number = 1, 
-    verbose = False, tomake = False):
+    verbose = False, tomake = False, cd = ''):
     """
     From an input cube (with noise included) generate noise-added cubes
 
@@ -26,6 +27,23 @@ def noisegen(incube, gainname = '', outname='30Dor_13CO21.noiseadd.fits.gz', num
     tomake   - True to generate additional FITS images for debugging
     
     """
+    
+    if cd != '':
+        if os.path.exists(cd) == 1:
+            print('Found {}, changing directory...'.format(cd))
+            os.chdir(cd)
+        else:
+            print('Directory {} doesn\'t exist, creating and changing...\n'.format(cd))
+            os.mkdir(cd)
+            os.chdir(cd)
+    
+    # file paths need to be absolute or defined properly in relation to working directory
+    if os.path.exists(incube) == 1:
+        print('Found {}...'.format(incube))
+    else:
+        print('File {} does not exist'.format(incube))
+        return
+
     # Reads input data
     print('Reading {0}...'.format(incube))
     indata, inheader = fits.getdata(incube, 0, header = True)
@@ -93,7 +111,7 @@ def noisegen(incube, gainname = '', outname='30Dor_13CO21.noiseadd.fits.gz', num
         print('\nStandard deviation for {0} is {1}'.format(addout,noiseout))
     return
 
-def rms(names, outname):
+def rms(names, outname, cd = ''):
     """
     Generate a per-pixel RMS image from a set of input images.
     Includes proper handling of image masks.
@@ -104,6 +122,24 @@ def rms(names, outname):
     
     """
     # Computes rms from a set of fits images containing randomized data 
+
+    if cd != '':
+        if os.path.exists(cd) == 1:
+            print('Found {}, changing directory...'.format(cd))
+            os.chdir(cd)
+        else:
+            print('Directory {} doesn\'t exist, creating and changing...\n'.format(cd))
+            os.mkdir(cd)
+            os.chdir(cd)
+    
+    # file paths need to be absolute or defined properly in relation to working directory
+    for n in names:
+        if os.path.exists(n) == 1:
+            print('Found {}...'.format(n))
+            continue
+        else:
+            print('File {} does not exist'.format(n))
+            return   
 
     ### Extract data from first file ###
     print('Reading {0}...'.format(names[0]))
