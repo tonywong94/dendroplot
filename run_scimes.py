@@ -16,12 +16,11 @@ from astropy.io import fits
 from astropy.table import Table, Column
 from scimes import SpectralCloudstering
 
-def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None):
+def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None, redo='n'):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
     #%&%&%&%&%&%&%&%&%&%&%&%
-    print 'Make dendrogram from the full cube'
     hdu3 = fits.open(cubefile)[0]
     hd3 = hdu3.header
 
@@ -37,10 +36,19 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     ppb = 1.133*hd3['bmaj']*hd3['bmin']/(abs(hd3['cdelt1']*hd3['cdelt2']))
     print 'Pixels per beam: ',ppb
 
-    # Make the dendrogram
-    d = Dendrogram.compute(hdu3.data, min_value=3*sigma, \
-                    min_delta=2.5*sigma, min_npix=2*ppb, verbose = 1)
-    d.save_to(label+'_dendrogram.hdf5')
+    # Make the dendrogram if not present or redo=y
+    if redo == 'n' and os.path.isfile(label+'_dendrogram.hdf5'):
+        print 'Loading pre-existing dendrogram'
+        d = Dendrogram.load_from(label+'_dendrogram.hdf5')
+    else:
+        print 'Make dendrogram from the full cube'
+        d = Dendrogram.compute(hdu3.data, min_value=3*sigma,
+            min_delta=2.5*sigma, min_npix=2*ppb, verbose = 1)
+        d.save_to(label+'_dendrogram.hdf5')
+
+    # checks/creates directory to place plots
+    if os.path.isdir('plots') == 0:
+        os.makedirs('plots')
 
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
@@ -52,13 +60,13 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     branch = [s for s in d.all_structures if s not in d.leaves and s not in d.trunk]
     tronly = [s for s in d.trunk if s not in d.leaves]
     for st in tronly:
-        p.plot_tree(ax, structure=[st], color='brown', lw=1)
+        p.plot_tree(ax, structure=[st], color='brown')
     for st in branch:
-        p.plot_tree(ax, structure=[st], color='black', lw=1)
+        p.plot_tree(ax, structure=[st], color='black')
     for st in d.leaves:
-        p.plot_tree(ax, structure=[st], color='green', lw=1)
+        p.plot_tree(ax, structure=[st], color='green')
     #p.plot_tree(ax, color='black')
-    plt.savefig(label+'_dendrogram.pdf')
+    plt.savefig('plots/'+label+'_dendrogram.pdf')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #   Generate the catalog
@@ -119,7 +127,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
 
     print "Visualize the clustered dendrogram"
     dclust.showdendro()
-    plt.savefig(label+'_clusters_tree.pdf')
+    plt.savefig('plots/'+label+'_clusters_tree.pdf')
 
     print "Produce the assignment cube"
     dclust.asgncube(hd3)
@@ -170,7 +178,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig(label+'_trunks.pdf')
+    plt.savefig('plots/'+label+'_trunks_map.pdf')
     plt.close()
 
     # Make a branch list
@@ -213,7 +221,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
             writer.writerow([val])    
 
     fig.colorbar(im, ax=ax)
-    plt.savefig(label+'_leaves.pdf')
+    plt.savefig('plots/'+label+'_leaves_map.pdf')
     plt.close()
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
@@ -260,7 +268,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig(label+'_clusters_map.pdf')
+    plt.savefig('plots/'+label+'_clusters_map.pdf')
     plt.close()
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
@@ -319,7 +327,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
             elif type == 'v_rms':
                 name = 'velocity dispersion'
             cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=9,labelpad=-35)
-            plt.savefig(label+'_'+set+'_'+type.replace("_","")+'.pdf', 
+            plt.savefig('plots/'+label+'_'+set+'_'+type.replace("_","")+'.pdf', 
                 bbox_inches='tight')
             plt.close()
 

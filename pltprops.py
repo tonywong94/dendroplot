@@ -128,11 +128,8 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     freq    = fghz * u.GHz
 
     # checks/creates directory to place plots
-    if os.path.exists('plots') == 0:
+    if os.path.isdir('plots') == 0:
         os.makedirs('plots')
-
-    label = 'plots/' + label
-
 
     params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
 #    params = {'mathtext.default': 'regular' }          
@@ -197,7 +194,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     axes.set_xlabel(val+' ['+str(cat[val].unit)+']')
     axes.set_ylabel('Number')
     plt.legend(loc='best',fontsize='medium')
-    plt.savefig(label+'_pahist.pdf', bbox_inches='tight')
+    plt.savefig('plots/'+label+'_pahist.pdf', bbox_inches='tight')
     plt.close()
 
     # Size-linewidth relation, color coded
@@ -216,7 +213,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             mec='none', msize=30, zorder=2, cmap=cmap, label=z[i] )
         std_overlay(pcat, plotx, ploty, xlims[0], ylims[0])
         shortname = re.sub('_', '', z[i])
-        plt.savefig(label+'_rdv_'+shortname+'.pdf', bbox_inches='tight')
+        plt.savefig('plots/'+label+'_rdv_'+shortname+'.pdf', bbox_inches='tight')
         plt.close()
 
     # Plot trunks, branches, leaves
@@ -228,7 +225,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             yerr=pcat[eploty]*pcat[yplot[i]], ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
         sctplot ( pcat[xplot[i]][idc[0]], pcat[yplot[i]][idc[0]], col='brown',
-            mark='p', mec='k', msize=100, zorder=4, label='trunks' )
+            mark='p', mec='k', msize=80, zorder=4, label='trunks' )
         sctplot ( pcat[xplot[i]][idc[1]], pcat[yplot[i]][idc[1]], col='w',
             mark='v', mec='k', msize=17, zorder=2, label='branches' )
         sctplot ( pcat[xplot[i]][idc[2]], pcat[yplot[i]][idc[2]], col='green',
@@ -237,7 +234,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             mark=None, mec='w', msize=1, zorder=0, label=None, linfit='b' )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
-        plt.savefig(label+'_'+pltname[i]+'_full.pdf', bbox_inches='tight')
+        plt.savefig('plots/'+label+'_'+pltname[i]+'_full.pdf', bbox_inches='tight')
         plt.close()
 
     # Plot trunks and their descendants
@@ -261,8 +258,9 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             sctplot ( pcat[xplot[i]][trd[j]], pcat[yplot[i]][trd[j]], col='w', 
                 mec=colors[j], zorder=3, msize=10, label='trunk'+str(tno) )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
-        plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
-        plt.savefig(label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
+        if len(idc[0]) <= 8:
+            plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
+        plt.savefig('plots/'+label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
         plt.close()
 
     # Plot clusters and their descendants (get marker color from table)
@@ -284,8 +282,9 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             sctplot ( pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], col='w', 
                 mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno) )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
-#        plt.legend(loc='best',fontsize='xx-small',numpoints=1)
-        plt.savefig(label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
+        if len(idc[0]) <= 8:
+            plt.legend(loc='best',fontsize='xx-small',numpoints=1)
+        plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
         plt.close()
 
     return

@@ -32,8 +32,6 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
     osamp  = np.sqrt(ppbeam)
 
     # Total the LTE masses
-    #for line in lines:
-    #    label = 'pcc_'+line
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
     cat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
     srclist = cat['_idx'].tolist()
