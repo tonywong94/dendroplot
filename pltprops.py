@@ -258,8 +258,8 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             sctplot ( pcat[xplot[i]][trd[j]], pcat[yplot[i]][trd[j]], col='w', 
                 mec=colors[j], zorder=3, msize=10, label='trunk'+str(tno) )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
-        if len(idc[0]) <= 8:
-            plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
+        if len(idc[0]) <= 10:
+            plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
         plt.close()
 
@@ -282,8 +282,8 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             sctplot ( pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], col='w', 
                 mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno) )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
-        if len(idc[0]) <= 8:
-            plt.legend(loc='best',fontsize='xx-small',numpoints=1)
+        if len(idc[3]) <= 10:
+            plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
         plt.close()
 
