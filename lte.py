@@ -73,7 +73,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     # Different methods are calculated slightly differently
     with np.errstate(invalid = 'ignore', divide = 'ignore'):
         if tx_method == 'peak':
-            t12 = np.nanmax(t12cube, axis == 0)
+            t12 = np.nanmax(t12cube, axis = 0)
             hdtx = hd2d
             t12[mask2d] = float('NaN')
         elif tx_method == 'cube':
@@ -112,7 +112,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     if (len(onlywrite) == 0) or ('outtau13' in onlywrite) == True:
         hd3d['datamin'] = np.nanmin(tau13)
         hd3d['datamax'] = np.nanmax(tau13)
-        hd3d['bunit'] = ''
+        hd3d['bunit'] = ' '
         hd3d['tfloor'] = tfloor
         fits.writeto(outtau13, tau13, hd3d, clobber = True)
         print('File {0} successfully written\n'.format(outtau13))
@@ -125,7 +125,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     if (len(onlywrite) == 0) or ('outtau13err' in onlywrite) == True:
         hdtx['datamin'] = np.nanmin(tau13err)
         hdtx['datamax'] = np.nanmax(tau13err)
-        hdtx['bunit'] = ''
+        hdtx['bunit'] = ' '
         hdtx['tfloor'] = tfloor
         fits.writeto(outtau13err, tau13err, hdtx, clobber = True)
         print('File {0} successfully written\n'.format(outtau13err))
@@ -207,7 +207,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     if (len(onlywrite) == 0) or ('outsnr13' in onlywrite) == True:
         hd2d['datamin'] = np.nanmin(n13snr).value
         hd2d['datamax'] = np.nanmax(n13snr).value
-        hd2d['bunit'] = ''
+        hd2d['bunit'] = ' '
         hd2d['tfloor'] = tfloor
         fits.writeto(outsnr13, n13snr, hd2d, clobber = True)
         print('File {0} successfully written\n'.format(outsnr13))
