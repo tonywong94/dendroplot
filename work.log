@@ -6,3 +6,8 @@ Next week: Go over property plots including siglte, set up dendrogram runs for a
 
 Feb 16:
 jb: lte.py script seems to work, need to reorganize directory structure.  Continue with run_scimes.py (doscimes_gmc225.py) to generate property plots.  Simplify align+convolve+plot.py to just do the convolve and plot steps.
+
+Mar 2:
+ew: updating prop_hist to automatically select limits and bin size, allow subsets of structures to be plotted, set up calling script in pcc/pyscript.
+tw: run new calling scripts on 30 Dor
+jb: smooth 30Dor and PCC flat cubes to 2.5" resolution and place results in '2p5arcsec' folder in Box.
