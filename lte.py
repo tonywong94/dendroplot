@@ -17,7 +17,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
     # datainfo should provide info on what source data is from and possibly a number corresponding to some form of iteration
     
     if cd != '':
-        if os.path.exists(cd) == 1:
+        if os.path.isdir(cd) == 1:
             print('Found {}, changing directory...'.format(cd))
             os.chdir(cd)
         else:
@@ -27,7 +27,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
 
     # file paths need to be absolute or defined properly in relation to working directory
     for f in files:
-        if os.path.exists(f) == 1:
+        if os.path.isdir(f) == 1:
             print('Found {}...'.format(f))
             continue
         else:

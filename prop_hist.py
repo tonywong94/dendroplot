@@ -13,12 +13,12 @@ import numpy as np
 import re
 import os
 from astropy.table import Table, Column
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from matplotlib.ticker import FixedLocator, MultipleLocator, FormatStrFormatter
 from scipy import stats
 
 
 # ----------------------------------------------------------------------------------------
-def prop_hist(label, dolog = True, val = 'mvir'):
+def prop_hist(label, dolog = True, val = 'mvir', lims = [0,4], bin_size = 0):
     # new version of mass_spec function
     # label is the name of the data set (eg 30dor, pcc, etc.)
     # val is the input from the label_physprop_add.txt columns
@@ -53,9 +53,13 @@ def prop_hist(label, dolog = True, val = 'mvir'):
     # histogram of masses
     # val = 'mvir' as default
     types = ['trunks', 'branches', 'leaves', 'clusters']
-    bin_size = 0.25
-    min_edge = 0
-    max_edge = 4
+    # original default values: bin_size = 0.25, min_edge = 0, max_edge = 4
+
+    if bin_size == 0:
+        bin_size = (lims[1] - lims[0]) / 16.
+    min_edge = lims[0]
+    max_edge = lims[1]
+
     N = (max_edge - min_edge) / bin_size
     bin_list = np.linspace(min_edge, max_edge, N + 1)
     #print(bin_list)
@@ -67,18 +71,22 @@ def prop_hist(label, dolog = True, val = 'mvir'):
 
     fig, axes = plt.subplots()
     axes.hist(pltdata, bin_list, normed = 0, log = dolog, histtype = 'bar', label = types, rwidth = .8)
-    majorLocator = MultipleLocator(bin_size * 2)
-    minorLocator = MultipleLocator(bin_size)
+    #majorLocator = MultipleLocator(bin_size * 2)
+    #minorLocator = MultipleLocator(bin_size)
     #axes.xaxis.set_major_locator(majorLocator)
     #axes.xaxis.set_minor_locator(minorLocator)
-    plt.xticks(bin_list + bin_size/2)
+
+    axes.xaxis.set_minor_locator(FixedLocator(bin_list[1::2] + bin_size/2))
+    axes.xaxis.set_major_locator(FixedLocator(bin_list[::2] + bin_size/2))
+
     axes.tick_params(labelsize = 6)
     axes.set_xlabel('log ' + val + ' [' + str(pcat[val].unit) + ']')
     axes.set_ylabel('Number')
 
+    plt.title('{0}_{1}'.format(label, val))
     plt.legend(loc = 'best', fontsize = 'medium')
-    #plt.show()
-    plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
+    plt.show()
+    #plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
     plt.close()
 
     return
