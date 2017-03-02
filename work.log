@@ -9,5 +9,5 @@ jb: lte.py script seems to work, need to reorganize directory structure.  Contin
 
 Mar 2:
 ew: updating prop_hist to automatically select limits and bin size, allow subsets of structures to be plotted, set up calling script in pcc/pyscript.
-tw: run new calling scripts on 30 Dor
-jb: smooth 30Dor and PCC flat cubes to 2.5" resolution and place results in '2p5arcsec' folder in Box.
+tw: run new calling scripts on 30 Dor.  Update PCC results using 6-10 K Tfloor in noisegen.  Make moment maps for 2.5" resolution cubes when ready.
+jb: smooth 30Dor and PCC flat cubes to 2.5" resolution and place results in '2p5arcsec' folder in Box.  Finish scimes run on GMC225.
