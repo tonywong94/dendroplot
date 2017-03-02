@@ -85,8 +85,8 @@ def prop_hist(label, dolog = True, val = 'mvir', lims = [0,4], bin_size = 0):
 
     plt.title('{0}_{1}'.format(label, val))
     plt.legend(loc = 'best', fontsize = 'medium')
-    plt.show()
-    #plt.savefig(label + '_' + val + 'hist.pdf', bbox_inches = 'tight')
+    #plt.show()
+    plt.savefig(label + '_' + val + '_hist.pdf', bbox_inches = 'tight')
     plt.close()
 
     return
