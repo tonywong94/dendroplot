@@ -7,7 +7,9 @@ import numpy as np
 import os
 
 pre = 'PCC'
+method = 'peak'
 noiseiter = 25
+tmin = 8
 img12   = '../PCC_12mTP_12CO21.pbcor.K.fits.gz'
 img13   = '../PCC_12mTP_13CO21.pbcor.K.fits.gz'
 flat12  = '../PCC_12mTP_12CO21.image.K.fits.gz'
@@ -22,7 +24,7 @@ mask12  = '../mom/PCC_12mTP_12CO_dil.mask.fits.gz'
 lte_names   = [img12, img13, rms12, rms13, mask12]
 
 old_dir = os.getcwd() # returns absolute path
-lte(files = lte_names, tfloor = 8, datainfo = pre, tx_method = 'cube', cd='../lte')
+lte(files = lte_names, tfloor = tmin, datainfo = pre, tx_method = method, cd='../lte')
 #os.chdir('../lte')
 
 # Using noisegen function from noisegen script to create random data
@@ -41,21 +43,21 @@ for n in range(noiseiter):
     info        = pre + '_noise_' + str(n + 1)
     lte_names   = [cube12, cube13, rms12, rms13, mask12]
 
-    lte(files = lte_names, tfloor = temperature, datainfo = info, tx_method = 'cube', 
+    lte(files = lte_names, tfloor = temperature, datainfo = info, tx_method = method, 
         onlywrite = ['outn13cube', 'outn13col'])
 
 # Using rms function from noisegen script creates a rms image based on the newly made 13CO column density random images
-rms_names1 = [pre + '_noise_' + str(n + 1) + '_cube_n13cube.fits.gz' for n in range(noiseiter)]
-rms_names2 = [pre + '_noise_' + str(n + 1) + '_cube_n13col.fits.gz' for n in range(noiseiter)]
-noiseout1  = pre + '_noise_rms_cube_n13cube.fits.gz'
-noiseout2  = pre + '_noise_rms_cube_n13col.fits.gz'
+rms_names1 = [pre + '_noise_' + str(n + 1) + '_'+method+'_n13cube.fits.gz' for n in range(noiseiter)]
+rms_names2 = [pre + '_noise_' + str(n + 1) + '_'+method+'_n13col.fits.gz' for n in range(noiseiter)]
+noiseout1  = pre + '_noise_rms_'+method+'_n13cube.fits.gz'
+noiseout2  = pre + '_noise_rms_'+method+'_n13col.fits.gz'
 rms(names = rms_names1, outname = noiseout1)
 rms(names = rms_names2, outname = noiseout2)
 
-xname1 = pre + '_cube_n13cubeerr.fits.gz'
-xname2 = pre + '_cube_n13colerr.fits.gz'
-yname1 = pre + '_noise_rms_cube_n13cube.fits.gz'
-yname2 = pre + '_noise_rms_cube_n13col.fits.gz'
+xname1 = pre + '_'+method+'_n13cubeerr.fits.gz'
+xname2 = pre + '_'+method+'_n13colerr.fits.gz'
+yname1 = pre + '_noise_rms_'+method+'_n13cube.fits.gz'
+yname2 = pre + '_noise_rms_'+method+'_n13col.fits.gz'
 oname1 = pre + '_noisecomp_cube'
 oname2 = pre + '_noisecomp_col'
 
