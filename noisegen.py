@@ -38,7 +38,7 @@ def noisegen(incube, gainname = '', outname='30Dor_13CO21.noiseadd.fits.gz', num
             os.chdir(cd)
     
     # file paths need to be absolute or defined properly in relation to working directory
-    if os.path.isdir(incube) == 1:
+    if os.path.exists(incube) == 1:
         print('Found {}...'.format(incube))
     else:
         print('File {} does not exist'.format(incube))
@@ -134,7 +134,7 @@ def rms(names, outname, cd = ''):
     
     # file paths need to be absolute or defined properly in relation to working directory
     for n in names:
-        if os.path.isdir(n) == 1:
+        if os.path.exists(n) == 1:
             print('Found {}...'.format(n))
             continue
         else:

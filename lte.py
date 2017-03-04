@@ -27,7 +27,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = '', onlywrite = [], 
 
     # file paths need to be absolute or defined properly in relation to working directory
     for f in files:
-        if os.path.isdir(f) == 1:
+        if os.path.exists(f) == 1:
             print('Found {}...'.format(f))
             continue
         else:
