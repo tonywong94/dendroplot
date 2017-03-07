@@ -12,7 +12,7 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import numpy as np
-import os.path as op
+import os
 
 def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbins=100, outname = '', extrema = [], cd = ''):
     # xname and yname are the two necessary inputs
@@ -39,11 +39,15 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     print('\nOpening {0} as xfile and {1} as yfile\n'.format(xname,yname))
 
     # Data extraction
-    xdata = xfile[0].data.flatten()
-    ydata = yfile[0].data.flatten()
+    xread = xfile[0].data.flatten()
+    yread = yfile[0].data.flatten()
+    # Reject NaN values
+    good = np.intersect1d(np.where(~np.isnan(xread))[0], np.where(~np.isnan(yread))[0])
+    xdata = xread[good]
+    ydata = yread[good]
 
-    print('Raw xdata ranges from {0} to {1}'.format(np.nanmin(xdata),np.nanmax(xdata)))
-    print('Raw ydata ranges from {0} to {1}\n'.format(np.nanmin(ydata),np.nanmax(ydata)))
+    print('Raw xdata ranges from {0} to {1}'.format(min(xdata),max(xdata)))
+    print('Raw ydata ranges from {0} to {1}\n'.format(min(ydata),max(ydata)))
 
     # When snrcut > 0, error data is required, and file names are inputted next
     if snrcut > 0:
@@ -55,9 +59,9 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
         yerrname = yname.replace('mom','emom')
 
         # Checks and if necessary corrects error file names
-        if op.exists(xerrname) == False:
+        if os.path.exists(xerrname) == False:
             xerrname = input('Enter name of file for x-axis error data: ')
-        if op.exists(yerrname) == False:
+        if os.path.exists(yerrname) == False:
             yerrname = input('Enter name of file for y-axis error data: ')
 
         xerrfile = fits.open(xerrname)
@@ -65,46 +69,40 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
         print('Opening {0} as xerrfile and {1} as yerrfile\n'.format(xerrname,yerrname))
 
         # Error data extraction
-        xerrdata = xerrfile[0].data.flatten()
-        yerrdata = yerrfile[0].data.flatten()
-            ### Write print statements?
+        xerrdata = xerrfile[0].data.flatten()[good]
+        yerrdata = yerrfile[0].data.flatten()[good]
+        print('Raw xerrdata ranges from {0} to {1}'.format(min(xerrdata),max(xerrdata)))
+        print('Raw yerrdata ranges from {0} to {1}\n'.format(min(yerrdata),max(yerrdata)))
 
         # Sets up arrays for detections and non-detections in each axis and the four posibilites for each point
-        xydet = []
-        xndet = []
-        yndet = []
-        xyndet = []
+        xydet = np.intersect1d(np.where(xdata >= scut*xerrdata)[0],
+            np.where(ydata >= scut*yerrdata)[0])
+        xndet = np.intersect1d(np.where(xdata < scut*xerrdata)[0],
+            np.where(ydata >= scut*yerrdata)[0])
+        yndet = np.intersect1d(np.where(xdata >= scut*xerrdata)[0],
+            np.where(ydata < scut*yerrdata)[0])
+        xyndet = np.intersect1d(np.where(xdata < scut*xerrdata)[0],
+            np.where(ydata < scut*yerrdata)[0])
 
-        ### Nondetection count loops -> possibly streamline?
-        for i in range(len(xdata)):
-            if xdata[i] > scut*xerrdata[i]:
-                if ydata[i] > scut*yerrdata[i]:
-                    xydet.append(i)
-                else:
-                    yndet.append(i)
-                    ydata[i] = scut*yerrdata[i]
-            else:
-                if ydata[i] > scut*yerrdata[i]:
-                    xndet.append(i)
-                    xdata[i] = scut*xerrdata[i]
-                else:
-                    xyndet.append(i)
-                    xdata[i] = scut*xerrdata[i]
-                    ydata[i] = scut*yerrdata[i]
+        # Replace non-detections with upper limit values
+        for i in np.concatenate([xndet,xyndet]):
+            xdata[i] = scut*xerrdata[i]
+        for i in np.concatenate([yndet,xyndet]):
+            ydata[i] = scut*yerrdata[i]
 
+        print('Number of detections: {0}'.format(len(xydet)))
         print('Non-detections only in xdata: {0}'.format(len(xndet)))
         print('Non-detections only in ydata: {0}'.format(len(yndet)))
         print('Non-detections in both xdata and ydata: {0}\n'.format(len(xyndet)))
 
-
-    ### Change wording???
-        print('Error-corrected xdata ranges from {0} to {1}'.format(np.nanmin(xdata),np.nanmax(xdata)))
-        print('Error-corrected ydata ranges from {0} to {1}'.format(np.nanmin(ydata),np.nanmax(ydata)))
+        print('With upper limits xdata ranges from {0} to {1}'.format(min(xdata),max(xdata)))
+        print('With upper limits ydata ranges from {0} to {1}'.format(min(ydata),max(ydata)))
 
     # Modify raw/error-corrected data into log scale if desired
     if dolog2d == True:
-        x = np.log10(xdata)
-        y = np.log10(ydata)
+        pos = np.intersect1d(np.where(xdata>0)[0], np.where(ydata>0)[0])
+        x = np.log10(xdata[pos])
+        y = np.log10(ydata[pos])
     else:
         x = xdata
         y = ydata
@@ -112,26 +110,26 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     # Max and min boundaries for the graphs
 
     if extrema == []:
-        xmin = math.floor(np.nanmin(x))
-        ymin = math.floor(np.nanmin(y))
-        xmax = math.ceil(np.nanmax(x))
-        ymax = math.ceil(np.nanmax(y))
+        xmin = math.floor(min(x))
+        ymin = math.floor(min(y))
+        xmax = math.ceil(max(x))
+        ymax = math.ceil(max(y))
     else:
         xmin = extrema[0]
         ymin = extrema[1]
         xmax = extrema[2]
         ymax = extrema[3]
 
-    finitex = np.isfinite(x)
-    finitey = np.isfinite(y)
-
-    fordeletion = []
-    for i in range(len(x)):
-        if (finitex[i] == 0 or finitey[i] == 0):
-            fordeletion.append(i)
-
-    x = np.delete(x, fordeletion)
-    y = np.delete(y, fordeletion)
+#     finitex = np.isfinite(x)
+#     finitey = np.isfinite(y)
+# 
+#     fordeletion = []
+#     for i in range(len(x)):
+#         if (finitex[i] == 0 or finitey[i] == 0):
+#             fordeletion.append(i)
+# 
+#     x = np.delete(x, fordeletion)
+#     y = np.delete(y, fordeletion)
 
     ####### Set up geometry of three plots #######
 
@@ -154,8 +152,6 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     nullfmt = tck.NullFormatter()
     axHistx.xaxis.set_major_formatter(nullfmt)
     axHisty.yaxis.set_major_formatter(nullfmt)
-
-
 
     ####### Plot 2-D histogram #######
 
@@ -217,8 +213,6 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
         # legend = plt.legend(loc='upper left', fontsize='medium')
         ### End of commented section
 
-
-
     ####### Plot 2-D labels/ticks #######
     
     # Name labels
@@ -242,8 +236,6 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     for label in ticklabels:
         label.set_fontsize(10)
         label.set_family('serif')
-
-
 
     ####### Plot 1-D histogram #######
 
@@ -294,15 +286,11 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     axHistx.yaxis.set_major_locator(tck.MaxNLocator(4))
     axHisty.xaxis.set_major_locator(tck.MaxNLocator(4))
 
-
-
     ####### Miscellaneous #######
 
     ### Arbitrary line plotted for limit I think?
     z = np.linspace(-10, 300)
     ax.plot(z, z)
-
-
 
     ####### Output file name #######
 
