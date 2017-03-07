@@ -39,7 +39,7 @@ noisegen(incube = flat13, gainname = gain13, outname = out13, number = noiseiter
 for n in range(noiseiter):
     cube12      = pre + '_12CO21.noiseadd.' + str(n + 1) + '.fits.gz'
     cube13      = pre + '_13CO21.noiseadd.' + str(n + 1) + '.fits.gz'
-    temperature = (6 * np.random.rand()) + 6 # Returns a random temperature in range 6 - 12 K
+    temperature = (4 * np.random.rand()) + 6 # Returns a random temperature in range 6 - 10 K
     info        = pre + '_noise_' + str(n + 1)
     lte_names   = [cube12, cube13, rms12, rms13, mask12]
 
