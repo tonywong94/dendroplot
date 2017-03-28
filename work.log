@@ -11,3 +11,6 @@ Mar 2:
 ew: updating prop_hist to automatically select limits and bin size, allow subsets of structures to be plotted, set up calling script in pcc/pyscript.
 tw: run new calling scripts on 30 Dor.  Update PCC results using 6-10 K Tfloor in noisegen.  Make moment maps for 2.5" resolution cubes when ready.
 jb: smooth 30Dor and PCC flat cubes to 2.5" resolution and place results in '2p5arcsec' folder in Box.  Finish scimes run on GMC225.
+
+Mar 28:
+jb: 3 arcsec smoothing of 30Dor and PCC; some new data sets will need noise flattening first.  Set up python and sourcetree environments on mmwave account.
