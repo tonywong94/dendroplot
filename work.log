@@ -14,3 +14,4 @@ jb: smooth 30Dor and PCC flat cubes to 2.5" resolution and place results in '2p5
 
 Mar 28:
 jb: 3 arcsec smoothing of 30Dor and PCC; some new data sets will need noise flattening first.  Set up python and sourcetree environments on mmwave account.
+ew: continue working on prop_hist to improve x and y axis labeling, generating linewidth histogram that includes both clouds (for poster).
