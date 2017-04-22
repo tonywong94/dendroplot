@@ -18,3 +18,17 @@ ew: continue working on prop_hist to improve x and y axis labeling, generating l
 
 Apr 4:
 jb: continue developing align+flatten+smooth scripts, some datasets need only smoothing whereas others also need alignment and flattening (like GMC104).  Smoothing script should have flexibility to smooth to a user-specified resolution or to a second image.
+
+Apr 11:
+Plan for GMC1:
+
+1) Flatten both 12CO and 13CO images
+2) Using 13CO as template, reproject the 12CO to match.
+3) Using 13CO as template, smooth the 12CO to match => get 1st pair.
+4) As a separate test, smooth both 12CO and 13CO to 3" resolution => get 2nd pair.
+5) Regenerate moment maps (mom_gmc1_flat.pro):
+  % idl
+  IDL> mom_gmc1_flat
+  IDL> exit
+5) Try running LTE script on both pairs.
+
