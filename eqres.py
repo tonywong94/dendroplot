@@ -26,7 +26,7 @@ def flatten(unflat, flux, name):
     flat[flat==0]=np.nan
     name=name+'.image.flat.fits.gz'
     
-    return fits.writeto(name, flat, uhd)
+    return fits.writeto(name, flat, uhd, clobber=True)
 
 """
 def aligner(image_1, image_2, name_1='12CO', name_2='13CO'):
