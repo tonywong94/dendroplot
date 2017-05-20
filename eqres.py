@@ -57,7 +57,14 @@ def convolver(image_1, image_2, name_1='12CO', name_2='13CO', size=None):
             old_unit = cube._header['bunit']
             print cube.beam
             new_cube=cube.convolve_to(newbeam)
-            convolved=names[i]+'.%x' %size +'arcsec'+'.convolved.fits.gz'
+            # Keep the cube in single precision if it was originally
+            if cube._header['bitpix'] == -32:
+                y = new_cube._data.astype(np.float32)
+                new_cube._data = y
+            str1 = "{:.1f}".format(size)
+            str2 = str1.replace(".0","")
+            str3 = str2.replace(".","p")
+            convolved=names[i] + '.' + str3 + 'as.image.fits.gz'
             new_cube.write(convolved,format='fits',overwrite=True)
             resimages.append(convolved)
             # fix brightness unit because spectralcube drops 'per beam'
@@ -75,6 +82,10 @@ def convolver(image_1, image_2, name_1='12CO', name_2='13CO', size=None):
         newbeam=radio_beam.Beam.from_fits_header(image_2)
         print newbeam
         new_cube=cube.convolve_to(newbeam)
+        # Keep the cube in single precision if it was originally
+        if cube._header['bitpix'] == -32:
+            y = new_cube._data.astype(np.float32)
+            new_cube._data = y
         convolved=name_1+'.convolved.fits.gz'
         new_cube.write(convolved,format='fits',overwrite=True)
         # fix brightness unit because spectralcube drops 'per beam'
