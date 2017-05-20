@@ -151,8 +151,8 @@ def hist1d_multiset(labels = ['30dor', 'pcc'], lines = ['12'], val = 'mvir', bin
         outname += '{}_'.format(labels[i])
         msg += '{} '.format(labels[i])
     for j in range(len(lines)):
-        outname += 'CO{}_'.format(lines[j])
-        msg += 'CO{} '.format(lines[j])
+        outname += '{}CO_'.format(lines[j])
+        msg += '{}CO '.format(lines[j])
     msg = msg[:len(msg)-1]
 
     outname += '{}.pdf'.format(val)
