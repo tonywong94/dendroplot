@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 import numpy as np
 import os
+from itertools import cycle
+
 
 def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbins=100, outname = '', extrema = [], cd = ''):
     # xname and yname are the two necessary inputs
@@ -304,3 +306,53 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
 
 ### Output print statements as a file, .txt
 ### Output detection arrays?
+
+def cumhist1d(xplot=[], nbins=100, xminlg=-2, xmaxlg=3, outname = 'cumhist1d'):
+    lines = ["-","--","-.",":"]
+    linecycler = cycle(lines)
+    fig, axes = plt.subplots()
+    for i in range(len(xplot)):
+        xfile = fits.getdata(xplot[i])
+        fname = os.path.basename(xplot[i]).replace('.mom0.fits.gz','')
+        print('\nOpening {0}'.format(xplot[i]))
+        xread = xfile.flatten()
+        xdata = xread[np.where(~np.isnan(xread))[0]]
+        print('Max value is {0}'.format(np.max(xdata)))
+        values, base = np.histogram(xdata, bins=nbins, normed=True)
+        dx = base[1] - base[0]
+        print('Bin width is {0}\n'.format(dx))
+        cumulative = np.cumsum(values)*dx
+        plt.plot(base[:-1], cumulative, next(linecycler), label=fname)
+    axes.set_xscale("log")
+    axes.set_xlim(10**xminlg, 10**xmaxlg)
+    axes.set_ylim(0, 1.)
+    axes.set_xlabel('ICO [K km/s]')
+    axes.set_ylabel('Fraction of Pixels < ICO')
+    plt.legend(loc='best',fontsize='x-small', handlelength=3)
+    plt.savefig(outname+'.pdf', bbox_inches='tight')
+    plt.close()
+
+def cumflux1d(xplot=[], nbins=100, xminlg=-2, xmaxlg=3, outname = 'cumflux1d'):
+    lines = ["-","--","-.",":"]
+    linecycler = cycle(lines)
+    fig, axes = plt.subplots()
+    for i in range(len(xplot)):
+        xfile = fits.getdata(xplot[i])
+        fname = os.path.basename(xplot[i]).replace('.mom0.fits.gz','')
+        print('\nOpening {0}'.format(xplot[i]))
+        xread = xfile.flatten()
+        xdata = xread[np.where(~np.isnan(xread))[0]]
+        print('Max value is {0}\n'.format(np.max(xdata)))
+        bins = np.logspace(xminlg, xmaxlg, num=nbins)
+        cumflux=np.empty(nbins)
+        for i in range(len(bins)):
+            cumflux[i] = sum(xdata[xdata<bins[i]])
+        cumflux /= np.max(cumflux)
+        plt.plot(bins, cumflux, next(linecycler), label=fname)
+    axes.set_ylim(0, 1.)
+    axes.set_xscale("log")
+    axes.set_xlabel('ICO [K km/s]')
+    axes.set_ylabel('Fraction of Flux < ICO')
+    plt.legend(loc='best',fontsize='x-small', handlelength=3)
+    plt.savefig(outname+'.pdf', bbox_inches='tight')
+    plt.close()
