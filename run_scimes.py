@@ -60,9 +60,9 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     branch = [s for s in d.all_structures if s not in d.leaves and s not in d.trunk]
     tronly = [s for s in d.trunk if s not in d.leaves]
     for st in tronly:
-        p.plot_tree(ax, structure=[st], color='brown')
+        p.plot_tree(ax, structure=[st], color='brown', subtree=False)
     for st in branch:
-        p.plot_tree(ax, structure=[st], color='black')
+        p.plot_tree(ax, structure=[st], color='black', subtree=False)
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
     #p.plot_tree(ax, color='black')
@@ -270,66 +270,6 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     fig.colorbar(im, ax=ax)
     plt.savefig('plots/'+label+'_clusters_map.pdf')
     plt.close()
-
-    #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    #     Image structures color-coded by properties
-    #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Image leaves and clusters colored by properties"
-
-    for set in ['leaves', 'clusters']:
-        with open(label+'_'+set+'.txt', 'r') as f:
-            reader=csv.reader(f, delimiter=' ')
-            a = zip(*reader)
-        idc = map(int,a[0])
-        subcat = cat[idc]
-        #subcat = Table(rows=cat[idc])
-        #cat = Table.read(label+'_'+set+'.txt', format='ascii.ecsv')
-        srclist = subcat['_idx'].tolist()
-        for type in ['v_cen', 'v_rms', 'flux']:
-            fig = plt.figure()
-            ax = fig.add_subplot(1, 1, 1)
-            imax = np.nanmax(hdu2.data)
-            im = ax.matshow(hdu2.data, origin='lower', cmap=plt.cm.Blues, vmax=imax)
-            plt.setp(ax.get_xticklabels(), visible=False)
-            plt.setp(ax.get_yticklabels(), visible=False)
-            if type == 'flux':  # Convert Jy*ch to K km/s
-                deltav = hd3['cdelt3']/1000. * u.km / u.s
-                as2 = 1 * u.arcsec**2
-                kflux = deltav * as2 * subcat[type].to(u.K,
-                    equivalencies=u.brightness_temperature(as2,freq))
-                subcat[type] = kflux/subcat['area_exact']
-                subcat[type].unit = 'K km / s'
-            vmin=np.floor(subcat[type].min())
-            vmax=np.ceil(subcat[type].max())
-            print label,set,type,' vmin and vmax:',vmin,vmax
-            for i, c in enumerate(srclist):
-                s = analysis.PPVStatistic(d[c])
-                scaled_v = (subcat[type][i]-vmin)/(vmax-vmin)
-                col=plt.cm.nipy_spectral_r(scaled_v)
-                ellipse = s.to_mpl_ellipse(color=col)
-                ax.add_patch(ellipse)
-            ax1 = fig.add_axes([0.3, 0.95, 0.45, 0.02])
-            cmap = plt.cm.get_cmap('nipy_spectral_r')
-            if type == 'v_cen':  # convert ch number to km/s
-                v0 = 1.e-3*(hd3['crval3'] + hd3['cdelt3']*(vmin-hd3['crpix3']))
-                v1 = 1.e-3*(hd3['crval3'] + hd3['cdelt3']*(vmax-hd3['crpix3']))
-                subcat[type].unit = 'km / s'
-            else:
-                v0 = vmin
-                v1 = vmax
-            cbar = mpl.colorbar.ColorbarBase(ax1, cmap=cmap,
-                 orientation='horizontal',norm=mpl.colors.Normalize(vmin=v0, vmax=v1))
-            cbar.ax.tick_params(labelsize=9)
-            if type == 'flux':
-                name = 'mean brightness'
-            elif type == 'v_cen':
-                name = 'mean velocity'
-            elif type == 'v_rms':
-                name = 'velocity dispersion'
-            cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=9,labelpad=-35)
-            plt.savefig('plots/'+label+'_'+set+'_'+type.replace("_","")+'.pdf', 
-                bbox_inches='tight')
-            plt.close()
 
     return
 
