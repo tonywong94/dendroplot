@@ -16,7 +16,8 @@ from astropy.io import fits
 from astropy.table import Table, Column
 from scimes import SpectralCloudstering
 
-def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None, redo='n'):
+def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None, 
+    redo='n', **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -66,7 +67,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
     #p.plot_tree(ax, color='black')
-    plt.savefig('plots/'+label+'_dendrogram.pdf')
+    plt.savefig('plots/'+label+'_dendrogram.pdf', bbox_inches='tight')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #   Generate the catalog
@@ -116,20 +117,20 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     newcol.unit = 'K'
     cat.add_column(newcol)
 
-    cat.write(label+'_full_catalog.txt', format='ascii.ecsv')
+    cat.write(label+'_full_catalog.txt', format='ascii.ecsv', overwrite=True)
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #     Running SCIMES
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Running SCIMES"
-    dclust = SpectralCloudstering(d, cat, criteria = criteria)
+    print("Running SCIMES")
+    dclust = SpectralCloudstering(d, cat, criteria = criteria, keepall=True)
     print dclust.clusters
 
-    print "Visualize the clustered dendrogram"
+    print("Visualize the clustered dendrogram")
     dclust.showdendro()
     plt.savefig('plots/'+label+'_clusters_tree.pdf')
 
-    print "Produce the assignment cube"
+    print("Produce the assignment cube")
     dclust.asgncube(hd3)
     try:
         os.remove(label+'_asgncube.fits.gz')
@@ -142,7 +143,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #     Image the trunks
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Image the trunks"
+    print("Image the trunks")
 
     hdu2 = fits.open(mom0file)[0]
 
@@ -150,6 +151,12 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     ax = fig.add_subplot(1, 1, 1)
     vmax = np.nanmax(hdu2.data)/2.
     im = ax.matshow(hdu2.data, origin='lower', cmap=plt.cm.Blues, vmax=vmax)
+    ax.axes.get_xaxis().set_ticks([])
+    ax.axes.get_yaxis().set_ticks([])
+    if 'xlims' in kwargs:
+        ax.set_xlim(kwargs['xlims'])
+    if 'ylims' in kwargs:
+        ax.set_ylim(kwargs['ylims'])
 
     # Make a trunk list
     tronly = [s for s in d.trunk if s not in d.leaves]
@@ -178,7 +185,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig('plots/'+label+'_trunks_map.pdf')
+    plt.savefig('plots/'+label+'_trunks_map.pdf', bbox_inches='tight')
     plt.close()
 
     # Make a branch list
@@ -195,12 +202,18 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #     Image the leaves
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Image the leaves"
+    print("Image the leaves")
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     vmax = np.nanmax(hdu2.data)/2.
     im = ax.matshow(hdu2.data, origin='lower', cmap=plt.cm.Blues, vmax=vmax)
+    ax.axes.get_xaxis().set_ticks([])
+    ax.axes.get_yaxis().set_ticks([])
+    if 'xlims' in kwargs:
+        ax.set_xlim(kwargs['xlims'])
+    if 'ylims' in kwargs:
+        ax.set_ylim(kwargs['ylims'])
 
     # Make a leaf list
     slist = []
@@ -221,13 +234,13 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
             writer.writerow([val])    
 
     fig.colorbar(im, ax=ax)
-    plt.savefig('plots/'+label+'_leaves_map.pdf')
+    plt.savefig('plots/'+label+'_leaves_map.pdf', bbox_inches='tight')
     plt.close()
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #     Image the clusters
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Image the resulting clusters"
+    print("Image the resulting clusters")
 
     clusts = np.array(dclust.clusters)
     colors = np.array(dclust.colors)
@@ -235,13 +248,19 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     clusts = clusts[inds]
     colors = colors[inds]
 
-    print clusts
-    print colors
+    print(clusts)
+    print(colors)
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     vmax = np.nanmax(hdu2.data)/2.
     im = ax.matshow(hdu2.data, origin='lower', cmap=plt.cm.Blues, vmax=vmax)
+    ax.axes.get_xaxis().set_ticks([])
+    ax.axes.get_yaxis().set_ticks([])
+    if 'xlims' in kwargs:
+        ax.set_xlim(kwargs['xlims'])
+    if 'ylims' in kwargs:
+        ax.set_ylim(kwargs['ylims'])
 
     # Make a cluster list
     f = open(label+'_clusters.txt', 'w')
@@ -268,7 +287,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig('plots/'+label+'_clusters_map.pdf')
+    plt.savefig('plots/'+label+'_clusters_map.pdf', bbox_inches='tight')
     plt.close()
 
     return

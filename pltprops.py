@@ -13,28 +13,28 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
 # General Scatter Plot
 def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k', 
-           zorder=-5, msize=6, cmap=None, linfit=None, label=None):
+           zorder=-5, msize=6, cmap=None, linfit=None, label=None, **kwargs):
     axes.set_xscale('log')
     axes.set_yscale('log')
     axes.set_aspect('equal')
     # Single color plot
     if cmap is None and np.size(col) == 1:
         axes.scatter(xdata, ydata, marker=mark, c=col, edgecolors=mec, 
-            zorder=zorder, s=msize, linewidths=1, label=label)
+            zorder=zorder, s=msize, linewidths=1, label=label, **kwargs)
     # Multi-color plot, array of colors
     elif cmap is None:
         for xp, yp, cp in zip(xdata, ydata, col):
             axes.scatter(xp, yp, marker=mark, c=cp, edgecolors=mec, 
-                zorder=zorder, s=msize)
+                zorder=zorder, s=msize, **kwargs)
     # Continuous color map based on structure number
     elif zdata is None:
         xind = np.linspace(0., 1., len(xdata))
         axes.scatter(xdata, ydata, marker=mark, c=xind, zorder=zorder,
-            cmap=cmap, edgecolors=mec, s=msize, label=None)
+            cmap=cmap, edgecolors=mec, s=msize, label=None, **kwargs)
     # Continuous color map based on property value
     else:
         sc=axes.scatter(xdata, ydata, marker=mark, c=zdata, zorder=zorder,
-            cmap=cmap, edgecolors=mec, s=msize, label=None)
+            cmap=cmap, edgecolors=mec, s=msize, label=None, **kwargs)
         cbar = plt.colorbar(sc)
         cbar.ax.tick_params(labelsize=9) 
         cbar.set_label(label, rotation=90)
@@ -67,6 +67,12 @@ def std_overlay(cat, xaxis, yaxis, xlims, ylims):
     elif xaxis == 'vrms_k':
         axes.axvspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
         xname = 'rms linewidth'
+    elif xaxis == 'area_pc2':
+        xmod = np.logspace(xlims[0],xlims[1],20)
+        axes.plot(xmod, xmod, linestyle=':', color='k', lw=1)
+        axes.plot(xmod, xmod*10, linestyle=':', color='k', lw=1)
+        axes.plot(xmod, xmod*100, linestyle=':', color='k', lw=1)
+        xname = 'projected area'
     elif xaxis == 'mlumco':
         xname = 'luminous mass'
     elif xaxis == 'mvir':
@@ -87,6 +93,8 @@ def std_overlay(cat, xaxis, yaxis, xlims, ylims):
         yname = 'rms linewidth'
     elif yaxis == 'mlumco':
         yname = 'luminous mass'
+    elif yaxis == 'mlte':
+        yname = 'LTE mass'
     elif yaxis == 'mvir':
         yname = 'virial mass'
     # Plot lines of constant external pressure when sigvir is on y-axis
@@ -275,14 +283,14 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
         sctplot ( pcat[xplot[i]][idc[3]], pcat[yplot[i]][idc[3]], mark='s', 
             zorder=4, col=clco, msize=25, linfit='b' )
         for j, tno in enumerate(idc[3]):
-            plt.errorbar(pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], 
-                xerr=pcat[eplotx][cld[j]]*pcat[xplot[i]][cld[j]], 
-                yerr=pcat[eploty][cld[j]]*pcat[yplot[i]][cld[j]], ecolor='dimgray', 
-                capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
+            #plt.errorbar(pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], 
+            #    xerr=pcat[eplotx][cld[j]]*pcat[xplot[i]][cld[j]], 
+            #    yerr=pcat[eploty][cld[j]]*pcat[yplot[i]][cld[j]], ecolor='dimgray', 
+            #    capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
             sctplot ( pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], col='w', 
-                mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno) )
+                mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno), alpha=0.5 )
         std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
-        if len(idc[3]) <= 10:
+        if len(idc[3]) <= 9:
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
         plt.close()
