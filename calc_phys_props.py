@@ -148,5 +148,5 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
     ptab['e_sigvir']  = Column(emvir)
     ptab['alpha']     = Column(alpha, unit='', description='virial parameter')
     ptab['e_alpha']   = Column(ealpha)
-    ptab.write(label+'_physprop.txt', format='ascii.ecsv')
+    ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
 

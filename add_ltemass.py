@@ -78,6 +78,6 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
         else:
             cat[col] /= cat['mlte']
 
-    cat.write(label+'_physprop_add.txt', format='ascii.ecsv')
+    cat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
 
     return
