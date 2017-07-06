@@ -98,8 +98,8 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
 # Draw tree diagram color-coded by properties
 #%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
 
-def props_coltree(dendrogram=None, cat=None, cubhd=None, props=['tmax'],
-        cmapname='jet', vmin=None, vmax=None, prefix='output'):
+def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None, 
+        props=['tmax'], cmapname='jet', vmin=None, vmax=None, prefix='output'):
     print("Draw tree diagram colored by properties")
     srclist = cat['_idx'].tolist()
     # Make a plot for each requested property
@@ -123,6 +123,13 @@ def props_coltree(dendrogram=None, cat=None, cubhd=None, props=['tmax'],
         cbar.ax.tick_params(labelsize=9)
         cbar.ax.set_yticklabels(cbar.ax.get_yticklabels(), rotation=90)
         cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=10)
+        if label == 'pcc_12':
+            ax.annotate('N', xy=(63, 2.5), xytext=(40, 45),
+                arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,
+                alpha=0.7), xycoords='data', textcoords='offset points')
+            ax.annotate('S', xy=(111, 9), xytext=(-40, 45),
+                arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,
+                alpha=0.7), xycoords='data', textcoords='offset points')
         plt.savefig(prefix+'_dendrogram_'+type.replace("_","")+'.pdf', 
             bbox_inches='tight')
         plt.close()
@@ -153,6 +160,6 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
         props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
             props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, **kwargs)
     # Plot colored dendrogram
-    props_coltree(dendrogram=d, cat=cat, cubhd=hd3, props=types, 
+    props_coltree(label=label, dendrogram=d, cat=cat, cubhd=hd3, props=types, 
         prefix=outdir+'/'+label, vmin=vmin, vmax=vmax)
     return
