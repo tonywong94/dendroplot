@@ -55,69 +55,71 @@ def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k',
 
 # -------------------------------------------------------------------------------
 
-def std_overlay(cat, xaxis, yaxis, xlims, ylims):
+def std_overlay(cat, axvar, xlims, ylims):
+    # Axis labels
+    mapping = { 'mvir':'virial mass', 
+        'mlumco':'luminous mass',
+        'mlte':'LTE mass',
+        'siglum':'$\Sigma$, CO-based',
+        'siglte':'$\Sigma$, LTE-based',
+        'sigvir':'$\Sigma$, virial',
+        'rad_pc':'spherical radius',
+        'vrms_k':'rms linewidth',
+        'area_pc2':'projected area',
+       }
+    axlbl=['','']
+    for i in [0,1]:
+        if axvar[i] in mapping.keys():
+            axlbl[i] = mapping[axvar[i]]
+        else:
+            axlbl[i] = axvar[i]
     # Plot gray shading indicating resolution limits
     rmstorad = 1.91
     radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
         u.pc, equivalencies=u.dimensionless_angles())
     dvlim = deltav.value/np.sqrt(8*np.log(2))
-    if xaxis == 'rad_pc':
+    if axvar[0] == 'rad_pc':
         axes.axvspan(1.e-3, radlim.value, fc='lightgray', alpha=0.3, lw=0)
-        xname = 'spherical radius'
-    elif xaxis == 'vrms_k':
+    elif axvar[0] == 'vrms_k':
         axes.axvspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
-        xname = 'rms linewidth'
-    elif xaxis == 'area_pc2':
+    if axvar[1] == 'rad_pc':
+        axes.axhspan(1.e-3, radlim.value, fc='lightgray', alpha=0.3, lw=0)
+    elif axvar[1] == 'vrms_k':
+        axes.axhspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
+    # Solomon et al. size-linewidth relation
+    if axvar[0] == 'rad_pc' and axvar[1] == 'vrms_k':
+        xmod = np.logspace(xlims[0],xlims[1],20)
+        ymod = 0.72 * np.sqrt(xmod)
+        axes.plot(xmod, ymod, linestyle='-', color='r', lw=4, alpha=0.5, 
+            zorder=-1)
+        axes.text(10**(xlims[1]-0.1), 10**(xlims[1]/2-0.1), 'S87', 
+            horizontalalignment='right', color='r', rotation=30)
+    # Lines of constant surface density
+    if axvar[0] == 'area_pc2' and axvar[1].startswith('m'):
         xmod = np.logspace(xlims[0],xlims[1],20)
         axes.plot(xmod, xmod, linestyle=':', color='k', lw=1)
         axes.plot(xmod, xmod*10, linestyle=':', color='k', lw=1)
         axes.plot(xmod, xmod*100, linestyle=':', color='k', lw=1)
-        xname = 'projected area'
-    elif xaxis == 'mlumco':
-        xname = 'luminous mass'
-    elif xaxis == 'mvir':
-        xname = 'virial mass'
-    elif xaxis == 'mlte':
-        xname = 'LTE mass'
-    elif xaxis == 'siglum':
-        xname = r'$\Sigma$, CO-based'
-    elif xaxis == 'siglte':
-        xname = r'$\Sigma$, LTE-based'
-    else:
-        xname = xaxis
-    if yaxis == 'rad_pc':
-        axes.axhspan(1.e-3, radlim.value, fc='lightgray', alpha=0.3, lw=0)
-        yname = 'spherical radius'
-    if yaxis == 'vrms_k':
-        axes.axhspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
-        yname = 'rms linewidth'
-    elif yaxis == 'mlumco':
-        yname = 'luminous mass'
-    elif yaxis == 'mlte':
-        yname = 'LTE mass'
-    elif yaxis == 'mvir':
-        yname = 'virial mass'
-    # Plot lines of constant external pressure when sigvir is on y-axis
-    elif yaxis == 'sigvir':
+    # Lines of constant external pressure
+    if axvar[0].startswith('sig') and axvar[1] == 'sigvir':
         xmod = np.logspace(xlims[0],xlims[1],100)
         ymod = xmod + (20/(3*np.pi*21.1))*1.e4/xmod
         axes.plot(xmod, ymod, linestyle='-', color='g')
-        axes.text(10**-0.6, 10**3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', color='g', rotation=-45)
+        axes.text(10**-0.6, 10**3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
+            color='g', rotation=-45)
         ymod2 = xmod + (20/(3*np.pi*21.1))*1.e2/xmod
         axes.plot(xmod, ymod2, linestyle='-', color='m')
-        axes.text(10**-0.95, 10**1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', color='m', rotation=-45)
-        yname = r'$\Sigma$, virial'
-    else:
-        yname = yaxis
+        axes.text(10**-0.95, 10**1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
+            color='m', rotation=-45)
     # If axes have identical units then plot y=x line
-    if cat[xaxis].unit == cat[yaxis].unit:
+    if cat[axvar[0]].unit == cat[axvar[1]].unit:
         xmod = np.logspace(xlims[0],xlims[1],20)
         axes.plot(xmod, xmod, linestyle='-', color='k')
     # Set plot limits and labels
     axes.set_xlim(10**xlims[0], 10**xlims[1])
     axes.set_ylim(10**ylims[0], 10**ylims[1])
-    axes.set_xlabel(xname+' ['+str(cat[xaxis].unit)+']')
-    axes.set_ylabel(yname+' ['+str(cat[yaxis].unit)+']')
+    axes.set_xlabel(axlbl[0]+' ['+str(cat[axvar[0]].unit)+']')
+    axes.set_ylabel(axlbl[1]+' ['+str(cat[axvar[1]].unit)+']')
     return
 
 # -------------------------------------------------------------------------------
@@ -210,16 +212,22 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     ploty = 'vrms_k'
     eplotx = 'e_'+plotx
     eploty = 'e_'+ploty
-    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav']
+    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum']
     cmap = plt.cm.get_cmap('nipy_spectral')
     for i in range(len(z)):
         fig, axes = plt.subplots()
         plt.errorbar(pcat[plotx], pcat[ploty], xerr=pcat[eplotx]*pcat[plotx], 
             yerr=pcat[eploty]*pcat[ploty], ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
-        sctplot( pcat[plotx], pcat[ploty], cat[z[i]], 
-            mec='none', msize=30, zorder=2, cmap=cmap, label=z[i] )
-        std_overlay(pcat, plotx, ploty, xlims[0], ylims[0])
+        if z[i] in cat.keys():
+            zlbl = z[i]+' ['+str(cat[z[i]].unit)+']'
+            sctplot( pcat[plotx], pcat[ploty], cat[z[i]], 
+                mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
+        elif z[i] in pcat.keys():
+            zlbl = z[i]+' ['+str(pcat[z[i]].unit)+']'
+            sctplot( pcat[plotx], pcat[ploty], pcat[z[i]], 
+                mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
+        std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0])
         shortname = re.sub('_', '', z[i])
         plt.savefig('plots/'+label+'_rdv_'+shortname+'.pdf', bbox_inches='tight')
         plt.close()
@@ -240,7 +248,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             mark='o', mec='k', msize=20, zorder=3, label='leaves' )
         sctplot ( pcat[xplot[i]], pcat[yplot[i]], col='w',
             mark=None, mec='w', msize=1, zorder=0, label=None, linfit='b' )
-        std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_full.pdf', bbox_inches='tight')
         plt.close()
@@ -265,7 +273,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
                 capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
             sctplot ( pcat[xplot[i]][trd[j]], pcat[yplot[i]][trd[j]], col='w', 
                 mec=colors[j], zorder=3, msize=10, label='trunk'+str(tno) )
-        std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
         if len(idc[0]) <= 10:
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
@@ -289,7 +297,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
             #    capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
             sctplot ( pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], col='w', 
                 mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno), alpha=0.5 )
-        std_overlay(pcat, xplot[i], yplot[i], xlims[i], ylims[i])
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
         if len(idc[3]) <= 9:
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
