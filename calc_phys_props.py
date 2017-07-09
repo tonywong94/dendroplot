@@ -8,6 +8,7 @@ from astrodendro.analysis import ScalarStatistic, PPVStatistic
 from astropy.table import Table, Column
 from astropy.io.fits import getdata
 from astropy.stats import mad_std
+#from matplotlib import pyplot as plt
 
 def clustbootstrap(sindices, svalues, meta, bootstrap):
     bootiters = range(bootstrap)
@@ -31,7 +32,8 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
     return emmajs, emmins, emomvs, eflux, pa
 
 
-def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
+def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
+        alphascale=1):
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
@@ -84,6 +86,10 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
 
         emmajs, emmins, emomvs, emom0s, pa = clustbootstrap(
             sindices, svalues, metadata, boot_iter)
+        # bin_list=np.linspace(np.floor(min(emmajs)),np.ceil(max(emmajs)),50)
+        # fig, axes = plt.subplots()
+        # axes.hist(emmajs, bin_list, normed=0, histtype='bar')
+        # plt.savefig('emmajs_histo.pdf', bbox_inches='tight')
 
         bootmaj   = np.asarray(emmajs) * u.arcsec
         bootmin   = np.asarray(emmins) * u.arcsec
@@ -94,7 +100,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
         bootaxrat = bootmin/bootmaj
         bootflux  = np.asarray(emom0s) * u.Jy
         bootmvir  = (5*rmstorad*bootvrms**2*bootrrms/const.G).to(u.solMass)
-        bootmlum  = alphaco*deltav*asarea*(bootflux).to(
+        bootmlum  = alphaco*alphascale*deltav*asarea*(bootflux).to(
             u.K, equivalencies=u.brightness_temperature(as2,freq))
         bootalpha = bootmvir/bootmlum
 
@@ -109,6 +115,21 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
         emvir[j]  = indfac * mad_std(bootmvir) / np.median(bootmvir)
         ealpha[j] = indfac * mad_std(bootalpha)/ np.median(bootalpha)
 
+    # ---- report the median uncertainties
+    print( "The median fractional error in rad_pc is {:2.4f}"
+        .format(np.nanmedian(errms)) )
+    print( "The median fractional error in vrms_k is {:2.4f}"
+        .format(np.nanmedian(evrms)) )
+    print( "The median fractional error in mlumco is {:2.4f}"
+        .format(np.nanmedian(eflux)) )
+    
+    # ---- apply a floor if requested
+    if efloor > 0:
+        print( "Applying a minimum fractional error of {:2.3f}".format(efloor) )
+        errms[errms<efloor] = efloor
+        evrms[evrms<efloor] = efloor
+        eflux[eflux<efloor] = efloor
+
     # ---- calculate the physical properties
     rms_pc  = (cat['radius'] * dist).to(
         u.pc, equivalencies=u.dimensionless_angles())
@@ -122,7 +143,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100):
     # lumco = Luminosity in K km/s pc^2
     lumco  = deltav * asarea * (cat['flux']).to(
         u.K,equivalencies=u.brightness_temperature(as2,freq))
-    mlumco = alphaco * lumco
+    mlumco = alphaco * alphascale * lumco
     siglum = mlumco/xctarea
     mvir   = (5*rmstorad*v_rms**2*rms_pc/const.G).to(u.solMass)  # Rosolowsky+ 08
     sigvir = mvir / xctarea
