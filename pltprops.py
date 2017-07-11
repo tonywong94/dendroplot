@@ -6,16 +6,16 @@ from scipy import stats
 import os
 import re
 from matplotlib import pyplot as plt
+from matplotlib.patches import Polygon
 from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from kapteyn import kmpfit
 
 # General Scatter Plot
 def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k', 
            zorder=-5, msize=6, cmap=None, linfit=None, label=None, **kwargs):
-    axes.set_xscale('log')
-    axes.set_yscale('log')
     axes.set_aspect('equal')
     # Single color plot
     if cmap is None and np.size(col) == 1:
@@ -49,13 +49,13 @@ def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k',
         xmod = np.logspace(-3,6,100)
         ymod = b+m*np.log10(xmod)
         axes.plot(xmod, 10**(ymod), linestyle='--', color=linfit)
-        axes.text(0.03,0.95,'slope = $%4.2f$' % m,size=10,transform=axes.transAxes)
-        axes.text(0.03,0.90,'intercept = $%4.2f$' % b,size=10,transform=axes.transAxes)
+        axes.text(0.03,0.95,'slope = $%4.2f$' % m,size=9,transform=axes.transAxes)
+        axes.text(0.03,0.90,'intercept = $%4.2f$' % b,size=9,transform=axes.transAxes)
     return
 
 # -------------------------------------------------------------------------------
 
-def std_overlay(cat, axvar, xlims, ylims):
+def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
     # Axis labels
     mapping = { 'mvir':'virial mass', 
         'mlumco':'luminous mass',
@@ -74,75 +74,131 @@ def std_overlay(cat, axvar, xlims, ylims):
         else:
             axlbl[i] = axvar[i]
     # Plot gray shading indicating resolution limits
-    rmstorad = 1.91
-    radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
-        u.pc, equivalencies=u.dimensionless_angles())
-    dvlim = deltav.value/np.sqrt(8*np.log(2))
-    if axvar[0] == 'rad_pc':
-        axes.axvspan(1.e-3, radlim.value, fc='lightgray', alpha=0.3, lw=0)
-    elif axvar[0] == 'vrms_k':
-        axes.axvspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
-    if axvar[1] == 'rad_pc':
-        axes.axhspan(1.e-3, radlim.value, fc='lightgray', alpha=0.3, lw=0)
-    elif axvar[1] == 'vrms_k':
-        axes.axhspan(1.e-3, dvlim, fc='lightgray', alpha=0.3, lw=0)
+    if shade[0] > 0:
+        axes.axvspan(-3, np.log10(shade[0]), fc='lightgray', alpha=0.3, lw=0)
+    if shade[1] > 0:
+        axes.axhspan(-3, np.log10(shade[1]), fc='lightgray', alpha=0.3, lw=0)
     # Solomon et al. size-linewidth relation
     if axvar[0] == 'rad_pc' and axvar[1] == 'vrms_k':
-        xmod = np.logspace(xlims[0],xlims[1],20)
-        ymod = 0.72 * np.sqrt(xmod)
+        xmod = np.linspace(xlims[0],xlims[1],20)
+        ymod = np.log10(0.72) + 0.5*xmod
         axes.plot(xmod, ymod, linestyle='-', color='r', lw=4, alpha=0.5, 
             zorder=-1)
-        axes.text(10**(xlims[1]-0.1), 10**(xlims[1]/2-0.1), 'S87', 
+        axes.text((xlims[1]-0.05), (xlims[1]/2-0.1), 'S87', 
             horizontalalignment='right', color='r', rotation=30)
     # Lines of constant surface density
     if axvar[0] == 'area_pc2' and axvar[1].startswith('m'):
-        xmod = np.logspace(xlims[0],xlims[1],20)
+        xmod = np.linspace(xlims[0],xlims[1],20)
         axes.plot(xmod, xmod, linestyle=':', color='k', lw=1)
-        axes.plot(xmod, xmod*10, linestyle=':', color='k', lw=1)
-        axes.plot(xmod, xmod*100, linestyle=':', color='k', lw=1)
+        axes.plot(xmod, xmod+1, linestyle=':', color='k', lw=1)
+        axes.plot(xmod, xmod+2, linestyle=':', color='k', lw=1)
     # Lines of constant external pressure
     if axvar[0].startswith('sig') and axvar[1] == 'sigvir':
-        xmod = np.logspace(xlims[0],xlims[1],100)
-        ymod = xmod + (20/(3*np.pi*21.1))*1.e4/xmod
-        axes.plot(xmod, ymod, linestyle='-', color='g')
-        axes.text(10**-0.6, 10**3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
+        xmod = np.linspace(xlims[0],xlims[1],100)
+        ymod = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e4/10**xmod)
+        axes.plot(xmod, ymod, linestyle='-', color='g', lw=1)
+        axes.text(-0.6, 3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
             color='g', rotation=-45)
-        ymod2 = xmod + (20/(3*np.pi*21.1))*1.e2/xmod
-        axes.plot(xmod, ymod2, linestyle='-', color='m')
-        axes.text(10**-0.95, 10**1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
+        ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
+        axes.plot(xmod, ymod2, linestyle='-', color='m', lw=1)
+        axes.text(-0.95, 1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
             color='m', rotation=-45)
     # If axes have identical units then plot y=x line
     if cat[axvar[0]].unit == cat[axvar[1]].unit:
-        xmod = np.logspace(xlims[0],xlims[1],20)
+        xmod = np.linspace(xlims[0],xlims[1],20)
         axes.plot(xmod, xmod, linestyle='-', color='k')
     # Set plot limits and labels
-    axes.set_xlim(10**xlims[0], 10**xlims[1])
-    axes.set_ylim(10**ylims[0], 10**ylims[1])
-    axes.set_xlabel(axlbl[0]+' ['+str(cat[axvar[0]].unit)+']')
-    axes.set_ylabel(axlbl[1]+' ['+str(cat[axvar[1]].unit)+']')
+    axes.set_xlim(xlims[0], xlims[1])
+    axes.set_ylim(ylims[0], ylims[1])
+    axes.set_xlabel('log '+axlbl[0]+' ['+str(cat[axvar[0]].unit)+']')
+    axes.set_ylabel('log '+axlbl[1]+' ['+str(cat[axvar[1]].unit)+']')
     return
 
 # -------------------------------------------------------------------------------
 
-def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
-            xplot=['radius', 'v_rms', 'area_exact'],
-            xlims=[[-1.5,1], [-2,2], [-1,3]],
-            yplot=['v_rms' , 'flux', 'flux'],
-            ylims=[[-2,1.5], [-1.5,4.5], [-2,4]],
+def model(p, x):
+    a, b = p
+    return a + b*x
+
+# -------------------------------------------------------------------------------
+
+def residuals(p, data):
+    a, b = p
+    x, y, errx, erry = data
+    w = erry*erry + (b)**2*errx*errx
+    wi = np.sqrt(np.where(w==0.0, 0.0, 1.0/(w)))
+    d = wi*(y-model(p,x))
+    return d
+
+# -------------------------------------------------------------------------------
+
+# Perform linear fitting using kmpfit's effective variance method
+def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95):
+    # Initial guess from simple linear regression
+    sorted=np.argsort(x)
+    b, a, rval, pval, std_err = stats.linregress(x[sorted], y[sorted])
+    print "\nLineregress parameters: ", a, b
+    # Run the fit
+    fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, xerr, yerr))
+    fitobj.fit(params0=[a, b])
+    print "\n======== Results kmpfit with effective variance ========="
+    print "Fitted parameters:      ", fitobj.params
+    print "Covariance errors:      ", fitobj.xerror
+    print "Standard errors:        ", fitobj.stderr
+    print "Chi^2 min:              ", fitobj.chi2_min
+    print "Reduced Chi^2:          ", fitobj.rchi2_min
+    print "Status Message:", fitobj.message
+    c, d = fitobj.params
+    e, f = fitobj.stderr
+    # Plot the results
+    xmod = np.linspace(xrange[0],xrange[1],20)
+    #ymod0 = model([a, b], xmod)
+    ymod = model([c, d], xmod)
+    axes.plot(xmod, ymod, linestyle='--', color=color, zorder=1)
+    dfdp = [1, xmod]
+    ydummy, upperband, lowerband = fitobj.confidence_band(xmod, dfdp, prob, model)
+    verts = zip(xmod, lowerband) + zip(xmod[::-1], upperband[::-1])
+    poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3, 
+        label="{:g}% conf.".format(prob*100))
+    axes.add_patch(poly)
+    #axes.text(0.03,0.95,'slope = $%4.2f$' % b,size=10,transform=axes.transAxes)
+    #axes.text(0.03,0.90,'intercept = $%4.2f$' % a,size=10,transform=axes.transAxes)
+    axes.text(0.03,0.95,'slope = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
+        f,size=9,transform=axes.transAxes)
+    axes.text(0.03,0.90,'intercept = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
+        e,size=9,transform=axes.transAxes)
+    return
+
+# -------------------------------------------------------------------------------
+
+def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
+            xplot=['rad_pc', 'vrms_k', 'area_pc2'],
+            yplot=['vrms_k', 'mlumco',  'mlumco'],
+            xlims=[[-1.5,1],   [-2,2],    [-1,3]],
+            ylims=[[-2,1.5], [-1.5,4.5],  [-2,4]],
             pltname=['rdv', 'dvflux', 'areaflux']):
 
-    global deltav, avgbeam, dist, freq, axes
+    global axes
     deltav  = dvkms * u.km / u.s
     avgbeam = beam * u.arcsec
     dist    = distpc * u.pc
     freq    = fghz * u.GHz
+    # Min radius is FWHM beam converted to rms size then scaled by 1.91
+    rmstorad = 1.91
+    radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
+        u.pc, equivalencies=u.dimensionless_angles())
+    # Min area is 2 Gaussian beams
+    arealim = 2 * np.pi/(4*np.log(2)) * ((avgbeam * dist).to(
+        u.pc, equivalencies=u.dimensionless_angles()))**2
+    # Min line width is channel width (~FWHM) divided by 2.35
+    dvlim = deltav.value/np.sqrt(8*np.log(2))
+    shade = {'rad_pc': radlim.value, 'vrms_k': dvlim, 'area_pc2': arealim.value}
 
     # checks/creates directory to place plots
     if os.path.isdir('plots') == 0:
         os.makedirs('plots')
 
     params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
-#    params = {'mathtext.default': 'regular' }          
     plt.rcParams.update(params)
 
     cat = Table.read(label+'_full_catalog.txt', format='ascii.ecsv')
@@ -171,7 +227,7 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     text=f.read()
     trd = []
     for line in text.splitlines():
-        trd.append(map(int, line.split('|')[1].split(',')))    
+        trd.append(map(int, line.split('|')[1].split(',')))
 
     # Get the lists of cluster descendants and colors
     f=open(label+'_clusters.txt','r')
@@ -210,97 +266,124 @@ def pltprops(label, fghz=230.538, distpc=5.e4, dvkms=0.2, beam=2,
     # Size-linewidth relation, color coded
     plotx = 'rad_pc'
     ploty = 'vrms_k'
-    eplotx = 'e_'+plotx
-    eploty = 'e_'+ploty
+    x, y, xerr, yerr = [pcat[plotx], pcat[ploty], pcat['e_'+plotx], pcat['e_'+ploty]]
+    # Must be positive to take logarithm
+    good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
     z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum']
     cmap = plt.cm.get_cmap('nipy_spectral')
     for i in range(len(z)):
         fig, axes = plt.subplots()
-        plt.errorbar(pcat[plotx], pcat[ploty], xerr=pcat[eplotx]*pcat[plotx], 
-            yerr=pcat[eploty]*pcat[ploty], ecolor='dimgray', capsize=0, 
+        plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
+            xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
+            ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
         if z[i] in cat.keys():
             zlbl = z[i]+' ['+str(cat[z[i]].unit)+']'
-            sctplot( pcat[plotx], pcat[ploty], cat[z[i]], 
+            sctplot( np.log10(x[good]), np.log10(y[good]), cat[z[i]][good], 
                 mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
         elif z[i] in pcat.keys():
             zlbl = z[i]+' ['+str(pcat[z[i]].unit)+']'
-            sctplot( pcat[plotx], pcat[ploty], pcat[z[i]], 
+            sctplot( np.log10(x[good]), np.log10(y[good]), pcat[z[i]][good], 
                 mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
-        std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0])
+        std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0], 
+            [shade['rad_pc'],shade['vrms_k']])
         shortname = re.sub('_', '', z[i])
         plt.savefig('plots/'+label+'_rdv_'+shortname+'.pdf', bbox_inches='tight')
         plt.close()
 
-    # Plot trunks, branches, leaves
+    # Main set of scatter plots, as requested by user
     for i in range(len(xplot)):
-        eplotx = 'e_'+xplot[i]
-        eploty = 'e_'+yplot[i]
+        x, y, xerr, yerr = [pcat[xplot[i]], pcat[yplot[i]], pcat['e_'+xplot[i]], 
+            pcat['e_'+yplot[i]]]
+        # Must be positive to take logarithm
+        good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
+        # Restrict indices of subsets to good values
+        idsel = idc[:]
+        for j in range(4):
+            idsel[j] = [val for val in idc[j] if val in good.tolist()]
+        # Exclude unresolved points from line fitting
+        xmin = ymin = 0
+        if xplot[i] in shade.keys():
+            if shade[xplot[i]] > 0:
+                xmin = shade[xplot[i]]
+        if yplot[i] in shade.keys():
+            if shade[yplot[i]] > 0:
+                ymin = shade[yplot[i]]
+        unshade = np.intersect1d(np.where(x>xmin)[0], np.where(y>ymin)[0])
+        # --- Plot trunks, branches, leaves
         fig, axes = plt.subplots()
-        plt.errorbar(pcat[xplot[i]], pcat[yplot[i]], xerr=pcat[eplotx]*pcat[xplot[i]], 
-            yerr=pcat[eploty]*pcat[yplot[i]], ecolor='dimgray', capsize=0, 
+        # Plot the error bars of all points in gray
+        plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
+            xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
+            ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
-        sctplot ( pcat[xplot[i]][idc[0]], pcat[yplot[i]][idc[0]], col='brown',
+        # Plot the trunks as red pentagons
+        sctplot ( np.log10(x[idsel[0]]), np.log10(y[idsel[0]]), col='brown',
             mark='p', mec='k', msize=80, zorder=4, label='trunks' )
-        sctplot ( pcat[xplot[i]][idc[1]], pcat[yplot[i]][idc[1]], col='w',
+        # Plot the branches as white triangles
+        sctplot ( np.log10(x[idsel[1]]), np.log10(y[idsel[1]]), col='w',
             mark='v', mec='k', msize=17, zorder=2, label='branches' )
-        sctplot ( pcat[xplot[i]][idc[2]], pcat[yplot[i]][idc[2]], col='green',
+        # Plot the leaves as green circles
+        sctplot ( np.log10(x[idsel[2]]), np.log10(y[idsel[2]]), col='green',
             mark='o', mec='k', msize=20, zorder=3, label='leaves' )
-        sctplot ( pcat[xplot[i]], pcat[yplot[i]], col='w',
-            mark=None, mec='w', msize=1, zorder=0, label=None, linfit='b' )
-        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
+        # Plot the best-fitting line and confidence interval
+        linefitting( np.log10(x[unshade]), np.log10(y[unshade]), 
+            xerr=xerr[unshade]/np.log(10), yerr=yerr[unshade]/np.log(10), 
+            xrange=xlims[i], color='b' )
+        # Make the labels and draw the gray shaded boxes
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_full.pdf', bbox_inches='tight')
         plt.close()
-
-    # Plot trunks and their descendants
-    for i in range(len(xplot)):
-        eplotx = 'e_'+xplot[i]
-        eploty = 'e_'+yplot[i]
+        # --- Plot trunks and their descendants
         fig, axes = plt.subplots()
         cmap = plt.cm.get_cmap('jet')
-        plt.errorbar(pcat[xplot[i]][idc[0]], pcat[yplot[i]][idc[0]], 
-            xerr=pcat[eplotx][idc[0]]*pcat[xplot[i]][idc[0]], 
-            yerr=pcat[eploty][idc[0]]*pcat[yplot[i]][idc[0]], ecolor='dimgray', 
-            capsize=0, zorder=2, marker=None, ls='None', lw=1, label=None)
-        sctplot ( pcat[xplot[i]][idc[0]], pcat[yplot[i]][idc[0]], mark='s', 
+        plt.errorbar( np.log10(x[idsel[0]]), np.log10(y[idsel[0]]), 
+            xerr=xerr[idsel[0]]/np.log(10), yerr=yerr[idsel[0]]/np.log(10), 
+            ecolor='dimgray', capsize=0, 
+            zorder=1, marker=None, ls='None', lw=1, label=None)
+        sctplot ( np.log10(x[idsel[0]]), np.log10(y[idsel[0]]), mark='s', 
             zorder=4, cmap=cmap, msize=30 )
-        colors = plt.cm.jet(np.linspace(0, 1, len(idc[0])))
-        for j, tno in enumerate(idc[0]):
-            plt.errorbar(pcat[xplot[i]][trd[j]], pcat[yplot[i]][trd[j]], 
-                xerr=pcat[eplotx][trd[j]]*pcat[xplot[i]][trd[j]], 
-                yerr=pcat[eploty][trd[j]]*pcat[yplot[i]][trd[j]], ecolor='dimgray', 
-                capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
-            sctplot ( pcat[xplot[i]][trd[j]], pcat[yplot[i]][trd[j]], col='w', 
+        colors = plt.cm.jet(np.linspace(0, 1, len(idsel[0])))
+        for j, tno in enumerate(idsel[0]):
+            trsel = trd[j][:]
+            trsel = [val for val in trd[j] if val in good.tolist()]
+            plt.errorbar( np.log10(x[trsel]), np.log10(y[trsel]), 
+                xerr=xerr[trsel]/np.log(10), yerr=yerr[trsel]/np.log(10),
+                ecolor='dimgray', capsize=0, 
+                zorder=1, marker=None, ls='None', lw=1, label=None)
+            sctplot ( np.log10(x[trsel]), np.log10(y[trsel]), col='w', 
                 mec=colors[j], zorder=3, msize=10, label='trunk'+str(tno) )
-        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
-        if len(idc[0]) <= 10:
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
+        # Only show legend if there are 10 or fewer trunks
+        if len(idsel[0]) <= 10:
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
         plt.close()
-
-    # Plot clusters and their descendants (get marker color from table)
-    for i in range(len(xplot)):
-        eplotx = 'e_'+xplot[i]
-        eploty = 'e_'+yplot[i]
+        # --- Plot clusters and their descendants (get marker color from table)
         fig, axes = plt.subplots()
-        plt.errorbar(pcat[xplot[i]][idc[3]], pcat[yplot[i]][idc[3]], 
-            xerr=pcat[eplotx][idc[3]]*pcat[xplot[i]][idc[3]], 
-            yerr=pcat[eploty][idc[3]]*pcat[yplot[i]][idc[3]], ecolor='dimgray', 
-            capsize=0, zorder=2, marker=None, ls='None', lw=1, label=None)
-        sctplot ( pcat[xplot[i]][idc[3]], pcat[yplot[i]][idc[3]], mark='s', 
-            zorder=4, col=clco, msize=25, linfit='b' )
-        for j, tno in enumerate(idc[3]):
-            #plt.errorbar(pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], 
-            #    xerr=pcat[eplotx][cld[j]]*pcat[xplot[i]][cld[j]], 
-            #    yerr=pcat[eploty][cld[j]]*pcat[yplot[i]][cld[j]], ecolor='dimgray', 
-            #    capsize=0, zorder=1, marker=None, ls='None', lw=1, label=None)
-            sctplot ( pcat[xplot[i]][cld[j]], pcat[yplot[i]][cld[j]], col='w', 
+        plt.errorbar( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), 
+            xerr=xerr[idsel[3]]/np.log(10), yerr=yerr[idsel[3]]/np.log(10), 
+            ecolor='dimgray', capsize=0, 
+            zorder=2, marker=None, ls='None', lw=1, label=None)
+        sctplot ( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), mark='s', 
+            zorder=4, col=clco, msize=25 )
+        unshade2 = idsel[3][:]
+        unshade2 = [val for val in idsel[3] if val in unshade.tolist()]
+        # Plot best-fitting line to clusters only
+        linefitting( np.log10(x[unshade2]), np.log10(y[unshade2]), 
+            xerr=xerr[unshade2]/np.log(10), yerr=yerr[unshade2]/np.log(10), 
+            xrange=xlims[i], color='b' )
+        for j, tno in enumerate(idsel[3]):
+            clsel = cld[j][:]
+            clsel = [val for val in cld[j] if val in good.tolist()]
+            sctplot ( np.log10(x[clsel]), np.log10(y[clsel]), col='w', 
                 mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno), alpha=0.5 )
-        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i])
-        if len(idc[3]) <= 9:
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
+        # Only show legend if there are 9 or fewer clusters
+        if len(idsel[3]) <= 9:
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
         plt.close()
-
+    
     return
