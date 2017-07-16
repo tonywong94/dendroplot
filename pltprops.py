@@ -3,6 +3,7 @@
 import csv
 import numpy as np
 from scipy import stats
+from scipy import odr
 import os
 import re
 from matplotlib import pyplot as plt
@@ -150,6 +151,12 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     print "Status Message:", fitobj.message
     c, d = fitobj.params
     e, f = fitobj.stderr
+    # Alternative method using Orthogonal Distance Regression
+    linear = odr.Model(model)
+    mydata = odr.RealData(x, y, sx=xerr, sy=yerr)
+    myodr = odr.ODR(mydata, linear, beta0=[a,b])
+    myoutput = myodr.run()
+    myoutput.pprint()
     # Plot the results
     xmod = np.linspace(xrange[0],xrange[1],20)
     #ymod0 = model([a, b], xmod)
@@ -187,8 +194,8 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     rmstorad = 1.91
     radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
         u.pc, equivalencies=u.dimensionless_angles())
-    # Min area is 2 Gaussian beams
-    arealim = 2 * np.pi/(4*np.log(2)) * ((avgbeam * dist).to(
+    # Min area is 1 Gaussian beam
+    arealim = np.pi/(4*np.log(2)) * ((avgbeam * dist).to(
         u.pc, equivalencies=u.dimensionless_angles()))**2
     # Min line width is channel width (~FWHM) divided by 2.35
     dvlim = deltav.value/np.sqrt(8*np.log(2))
