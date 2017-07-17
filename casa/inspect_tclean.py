@@ -65,7 +65,10 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
     # Maximum of residual over the chosen velocity range
     if os.path.isfile(resid):
         resid_im  = SpectralCube.read(resid)
-        resid_sub = resid_im.spectral_slab(sig_v0 * u.km / u.s, sig_v1 * u.km / u.s)
+        if sig_v0 is not None:
+            resid_sub = resid_im.spectral_slab(sig_v0 * u.km / u.s, sig_v1 * u.km / u.s)
+        else:
+            resid_sub = resid_im
         resvals = np.asarray(resid_sub).flatten()
         resvals = resvals[~np.isnan(resvals)]
         resid_mom = np.asarray(resid_sub.moment(order=0))
@@ -121,7 +124,7 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
     # Plot model image
     if model_mom is not None:
         ax3 = fig.add_subplot(233)
-        im3 = plt.imshow(model_mom, origin='lower', cmap='nipy_spectral')
+        im3 = plt.imshow(model_mom, origin='lower', cmap='gist_ncar')
         cbar = fig.colorbar(im3, ax=ax3)
         cbar.ax.tick_params(labelsize=8) 
         ax3.contour(mask_max, colors='w', linewidths=1, levels=[0.5])
@@ -137,22 +140,23 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
     # Show parameters
     ax6 = fig.add_subplot(236)
     ax6.axis('off')
-    xleft = 0.01
+    xleft = 0.00
     xind  = 0.05
-    ytop  = 0.95
-    ystep = 0.06
-    ax6.text(xleft,ytop,'file = {0}'.format(image), transform=ax6.transAxes)
+    ytop  = 0.98
+    ystep = 0.055
+    ax6.text(xleft,ytop,'log = {0}'.format(casalog), transform=ax6.transAxes)
+    ax6.text(xleft,ytop-ystep,'image = {0}'.format(image), transform=ax6.transAxes)
     if sig_v0 is not None:
-        ax6.text(xleft,ytop-ystep,'vrange = {0} to {1} km/s'.format(sig_v0,sig_v1),
+        ax6.text(xleft,ytop-2*ystep,'vrange = {0} to {1} km/s'.format(sig_v0,sig_v1),
             transform=ax6.transAxes)
     else:
-        ax6.text(xleft,ytop-ystep,'vrange = {0} to {1} km/s'.format(
+        ax6.text(xleft,ytop-2*ystep,'vrange = {0} to {1}'.format(
             data_im.spectral_extrema[0],data_im.spectral_extrema[1]),
             transform=ax6.transAxes)
-    ax6.text(xleft,ytop-2*ystep,'bmaj, bmin, bpa = {0:.2f}, {1:.2f}, {2:.2f}'.format(
+    ax6.text(xleft,ytop-3*ystep,'bmaj, bmin, bpa = {0:.2f}, {1:.2f}, {2:.2f}'.format(
         3600*data_im.header['bmaj'],3600*data_im.header['bmin'],
         data_im.header['bpa']), transform=ax6.transAxes)
-    ax6.text(xleft,ytop-3*ystep,'rms noise = {0:.3f} Jy/bm'.format(
+    ax6.text(xleft,ytop-4*ystep,'rms noise = {0:.3f} Jy/bm'.format(
         data_rms), transform=ax6.transAxes)
 
     # Read parameters from casa.log:
@@ -174,17 +178,17 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
         matches += p3.findall(keep)
         tclnpar = dict(matches)
         # Output parameters
-        ax6.text(xleft,ytop-4*ystep,'cell = {0}, imsize = {1}'.format(
+        ax6.text(xleft,ytop-5*ystep,'cell = {0}, imsize = {1}'.format(
             tclnpar['cell'],tclnpar['imsize']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-5*ystep,'weighting = {0}'.format(
+        ax6.text(xleft,ytop-6*ystep,'weighting = {0}'.format(
             tclnpar['weighting']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-6*ystep,'niter = {0}'.format(
+        ax6.text(xleft,ytop-7*ystep,'niter = {0}'.format(
             tclnpar['niter']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-7*ystep,'threshold = {0}'.format(
+        ax6.text(xleft,ytop-8*ystep,'threshold = {0}'.format(
             tclnpar['threshold']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-8*ystep,'deconvolver = {0}'.format(
+        ax6.text(xleft,ytop-9*ystep,'deconvolver = {0}'.format(
             tclnpar['deconvolver']), transform=ax6.transAxes)
-        ynext = ytop-9*ystep
+        ynext = ytop-10*ystep
         if (tclnpar['deconvolver'] == "multiscale"):
             ax6.text(xleft+xind,ynext,'scales = {0}'.format(
                 tclnpar['scales']), transform=ax6.transAxes)
