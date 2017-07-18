@@ -8,7 +8,7 @@ prename=['GMC1_12CO_12m','GMC1_12CO_7m','GMC1_12CO_12m7m']
 weighting=['briggs', 'natural']
 deconvolver=['clark', 'multiscale']
 usemask=['pb','auto-thresh','auto-thresh2','auto-multithresh']
-imsize=[[1000, 800], [250, 200]]
+imsize=[[1000, 800], [250, 250]]
 cell=['0.5arcsec', '2arcsec']
 minpb=0.2
 restfreq='115.2712GHz'
@@ -58,7 +58,7 @@ if thisname == prename[2]:
     thiscell=cell[0]
 
 ### Make the image
-os.system('rm -rf '+prename+'.* ' +prename+'_*')
+os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
 tclean(vis=thisvis,
        imagename=thisname,
        gridder='mosaic',
@@ -95,24 +95,24 @@ tclean(vis=thisvis,
        interactive=False)
 
 # Convolve the model by the beam
-imhdr = imhead(prename+'.image',mode='list')
-imsmooth(imagename=prename+'.model',targetres=True,
+imhdr = imhead(thisname+'.image',mode='list')
+imsmooth(imagename=thisname+'.model',targetres=True,
     major=str(imhdr['beammajor']['value'])+imhdr['beammajor']['unit'],
     minor=str(imhdr['beamminor']['value'])+imhdr['beamminor']['unit'],
     pa=str(imhdr['beampa']['value'])+imhdr['beampa']['unit'],
-    outfile=prename+'.convmodel', overwrite=True)
+    outfile=thisname+'.convmodel', overwrite=True)
 
 # Export to FITS
-exportfits(imagename=prename+'.image',fitsimage=prename+'.image.fits',
+exportfits(imagename=thisname+'.image',fitsimage=thisname+'.image.fits',
     dropdeg=True,velocity=True,overwrite=True)
-exportfits(imagename=prename+'.pb',fitsimage=prename+'.pb.fits',
+exportfits(imagename=thisname+'.pb',fitsimage=thisname+'.pb.fits',
     dropdeg=True,velocity=True,overwrite=True)
-exportfits(imagename=prename+'.image.pbcor',fitsimage=prename+'.pbcor.fits',
+exportfits(imagename=thisname+'.image.pbcor',fitsimage=thisname+'.pbcor.fits',
     dropdeg=True,velocity=True,overwrite=True)
-exportfits(imagename=prename+'.residual',fitsimage=prename+'.residual.fits',
+exportfits(imagename=thisname+'.residual',fitsimage=thisname+'.residual.fits',
     dropdeg=True,velocity=True,overwrite=True)
-exportfits(imagename=prename+'.convmodel',fitsimage=prename+'.convmodel.fits',
+exportfits(imagename=thisname+'.convmodel',fitsimage=thisname+'.convmodel.fits',
     dropdeg=True,velocity=True)
-exportfits(imagename=prename+'.mask',fitsimage=prename+'.mask.fits',
+exportfits(imagename=thisname+'.mask',fitsimage=thisname+'.mask.fits',
     dropdeg=True,velocity=True,overwrite=True)
 
