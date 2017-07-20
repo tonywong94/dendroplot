@@ -112,7 +112,7 @@ exportfits(imagename=thisname+'.image.pbcor',fitsimage=thisname+'.pbcor.fits',
 exportfits(imagename=thisname+'.residual',fitsimage=thisname+'.residual.fits',
     dropdeg=True,velocity=True,overwrite=True)
 exportfits(imagename=thisname+'.convmodel',fitsimage=thisname+'.convmodel.fits',
-    dropdeg=True,velocity=True)
+    dropdeg=True,velocity=True,overwrite=True)
 exportfits(imagename=thisname+'.mask',fitsimage=thisname+'.mask.fits',
     dropdeg=True,velocity=True,overwrite=True)
 
