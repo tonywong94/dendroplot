@@ -1,8 +1,8 @@
-# execfile("tclean_A439.py")
+# execfile("tclean_N59C.py")
 
 ### Generic parameters for all runs
 vis=['../12m/calibrated_src.ms','../7m/calibrated_src.ms']
-prename=['A439_12CO_12m','A439_12CO_7m','A439_12CO_12m7m']
+prename=['N59C_12CO_12m','N59C_12CO_7m','N59C_12CO_12m7m']
 weighting=['briggs', 'natural']
 deconvolver=['clark', 'multiscale']
 usemask=['pb','auto-thresh','auto-thresh2','auto-multithresh']
@@ -13,9 +13,9 @@ restfreq='115.2712GHz'
 outframe='LSRK'
 spw=''
 width='0.2km/s'
-start='210km/s'
+start='270km/s'
 nchan=100
-phasecenter='J2000 05h47m26.1s -69d52m46s'
+phasecenter='J2000 05h35m18.8s -67d36m12s'
 
 ### Specific parameters for this run
 niter=10000
