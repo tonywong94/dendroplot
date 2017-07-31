@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 #      ylims   = y range for plotting, in pixels, e.g. [100,500]
 
 def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None, 
-    fileext='fits', sig_v0=None, sig_v1=None, xlims=None, ylims=None):
+    fileext='fits', sig_v0=None, sig_v1=None, xlims=None, ylims=None,
+    outfile=None):
 
     image   = prename + '.image.' + fileext     # image cube
     resid   = prename + '.residual.' + fileext  # residual cube
@@ -220,7 +221,9 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
                 tclnpar['cutthreshold']), transform=ax6.transAxes)
 
     plt.subplots_adjust(wspace=0.15, hspace=0.1)
-    print("output file is {0}".format(prename + '.tclean_results.pdf'))
-    plt.savefig(prename + '.tclean_results.pdf', bbox_inches='tight')
+    if outfile is None:
+        outfile = prename
+    print("output file is {0}".format(outfile + '.tclean_results.pdf'))
+    plt.savefig(outfile + '.tclean_results.pdf', bbox_inches='tight')
 
     return

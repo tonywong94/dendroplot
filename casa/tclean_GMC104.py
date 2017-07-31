@@ -13,7 +13,7 @@ restfreq='115.2712GHz'
 outframe='LSRK'
 spw=''
 width='0.2km/s'
-start='227km/s'
+start='216km/s'
 nchan=100
 phasecenter='J2000 05h21m05.5s -70d13m36s'
 
