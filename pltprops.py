@@ -319,6 +319,12 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         unshade = np.intersect1d(np.where(x>xmin)[0], np.where(y>ymin)[0])
         # --- Plot trunks, branches, leaves
         fig, axes = plt.subplots()
+        # Get plot label
+        reg = label.split('_')[0].upper()
+        if reg == '30DOR':
+            reg = '30Dor'
+        line = '$^{'+label.split('_')[1]+'}$CO'
+        plt.plot([], [], ' ', label=reg+', '+line)
         # Plot the error bars of all points in gray
         plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
             xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
