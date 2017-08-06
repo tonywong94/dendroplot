@@ -19,7 +19,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
 # n13cub_uc2 = ltedir+'PCC_noise_25_itrs_rms_n13cub.fits.gz'
 
     # Adopted parameters
-    distpc = 5.e4 * u.pc
+    distpc = 4.8e4 * u.pc
     co13toh2 = 5.0e6  # Indebetouw+ 13
 
     # Get basic info from header
