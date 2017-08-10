@@ -17,7 +17,6 @@ from kapteyn import kmpfit
 # General Scatter Plot
 def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k', 
            zorder=-5, msize=6, cmap=None, linfit=None, label=None, **kwargs):
-    axes.set_aspect('equal')
     # Single color plot
     if cmap is None and np.size(col) == 1:
         axes.scatter(xdata, ydata, marker=mark, c=col, edgecolors=mec, 
@@ -87,6 +86,22 @@ def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
             zorder=-1)
         axes.text((xlims[1]-0.05), (xlims[1]/2-0.1), 'S87', 
             horizontalalignment='right', color='r', rotation=30)
+    # Lines of constant surface density and volume density
+    if axvar[0] == 'rad_pc' and axvar[1].startswith('m'):
+        xmod = np.linspace(xlims[0],xlims[1],20)
+        # 1, 10, and 100 Msol/pc^2
+        axes.plot(xmod, np.log10(np.pi)+2*xmod+0, linestyle=':', color='k', 
+            lw=1, zorder=-1)
+        axes.plot(xmod, np.log10(np.pi)+2*xmod+1, linestyle=':', color='k', 
+            lw=1, zorder=-1)
+        axes.plot(xmod, np.log10(np.pi)+2*xmod+2, linestyle=':', color='k', 
+            lw=1, zorder=-1)
+        # Conversion from n to M/R^3
+        ntom = (4*np.pi/3)*(1.36*2*const.m_p.cgs/u.cm**3).to(u.Msun/u.pc**3).value
+        # 10**2, 10**3 and 10**4 mol cm^-3
+        axes.plot(xmod, np.log10(ntom)+3*xmod+2, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
+        axes.plot(xmod, np.log10(ntom)+3*xmod+3, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
+        axes.plot(xmod, np.log10(ntom)+3*xmod+4, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
     # Lines of constant surface density
     if axvar[0] == 'area_pc2' and axvar[1].startswith('m'):
         xmod = np.linspace(xlims[0],xlims[1],20)
@@ -170,10 +185,10 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     axes.add_patch(poly)
     #axes.text(0.03,0.95,'slope = $%4.2f$' % b,size=10,transform=axes.transAxes)
     #axes.text(0.03,0.90,'intercept = $%4.2f$' % a,size=10,transform=axes.transAxes)
-    axes.text(0.03,0.95,'slope = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
-        f,size=9,transform=axes.transAxes)
-    axes.text(0.03,0.90,'intercept = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
-        e,size=9,transform=axes.transAxes)
+    axes.text(0.03,0.95,'a = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
+        f,size=10,transform=axes.transAxes)
+    axes.text(0.03,0.90,'b = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
+        e,size=10,transform=axes.transAxes)
     return
 
 # -------------------------------------------------------------------------------
@@ -280,6 +295,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     cmap = plt.cm.get_cmap('nipy_spectral')
     for i in range(len(z)):
         fig, axes = plt.subplots()
+        axes.set_aspect('equal')
         plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
             xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
             ecolor='dimgray', capsize=0, 
@@ -311,20 +327,26 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         # Exclude unresolved points from line fitting
         xmin = ymin = 0
         if xplot[i] in shade.keys():
+            print('Excluding points from {0} below {1}'.format(xplot[i],shade[xplot[i]]))
             if shade[xplot[i]] > 0:
                 xmin = shade[xplot[i]]
         if yplot[i] in shade.keys():
+            print('Excluding points from {0} below {1}'.format(yplot[i],shade[yplot[i]]))
             if shade[yplot[i]] > 0:
                 ymin = shade[yplot[i]]
         unshade = np.intersect1d(np.where(x>xmin)[0], np.where(y>ymin)[0])
         # --- Plot trunks, branches, leaves
         fig, axes = plt.subplots()
+        if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+            axes.set_aspect(0.6)
+        else:
+            axes.set_aspect('equal')
         # Get plot label
         reg = label.split('_')[0].upper()
         if reg == '30DOR':
             reg = '30Dor'
-        line = '$^{'+label.split('_')[1]+'}$CO'
-        plt.plot([], [], ' ', label=reg+', '+line)
+        line = label.split('_')[1]+'CO'
+        plt.plot([], [], ' ', label=reg+' '+line)
         # Plot the error bars of all points in gray
         plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
             xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
@@ -350,6 +372,10 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         plt.close()
         # --- Plot trunks and their descendants
         fig, axes = plt.subplots()
+        if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+            axes.set_aspect(0.6)
+        else:
+            axes.set_aspect('equal')
         cmap = plt.cm.get_cmap('jet')
         plt.errorbar( np.log10(x[idsel[0]]), np.log10(y[idsel[0]]), 
             xerr=xerr[idsel[0]]/np.log(10), yerr=yerr[idsel[0]]/np.log(10), 
@@ -375,6 +401,10 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         plt.close()
         # --- Plot clusters and their descendants (get marker color from table)
         fig, axes = plt.subplots()
+        if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+            axes.set_aspect(0.6)
+        else:
+            axes.set_aspect('equal')
         plt.errorbar( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), 
             xerr=xerr[idsel[3]]/np.log(10), yerr=yerr[idsel[3]]/np.log(10), 
             ecolor='dimgray', capsize=0, 

@@ -16,7 +16,9 @@ import os
 from itertools import cycle
 
 
-def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbins=100, outname = '', extrema = [], cd = ''):
+def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, 
+        xlbl=None, ylbl=None, shift=None, shiftlbl=None, 
+        nbins=100, outname = '', extrema = [], cd = ''):
     # xname and yname are the two necessary inputs
 
     if cd != '':
@@ -141,8 +143,8 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     bottom_h = left_h = left+width+0.02
 
     img = [left, bottom, width, height] # Dimensions of temperature plot
-    rect_histx = [left, bottom_h, width, 0.25] # Dimensions of x-histogram
-    rect_histy = [left_h, bottom, 0.25, height] # Dimensions of y-histogram
+    rect_histx = [left, bottom_h, width, 0.2] # Dimensions of x-histogram
+    rect_histy = [left_h, bottom, 0.2, height] # Dimensions of y-histogram
 
     fig = plt.figure(1, figsize=(9.5,9))
 
@@ -200,7 +202,7 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     extent = [xedge0[0], xedge0[-1], yedge0[0], yedge0[-1]]
     
     # Build contours
-    cset0 = ax.contour(counts0, levels, colors='green', extent=extent)
+    #cset0 = ax.contour(counts0, levels, colors='green', extent=extent)
     if snrcut > 0:
         cset1 = ax.contour(counts1, levels, colors='black', extent=extent)
         cset2 = ax.contour(counts2, levels, colors='blue', extent=extent)
@@ -217,15 +219,19 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
 
     ####### Plot 2-D labels/ticks #######
     
+    if xlbl is None:
+        xlbl = xname
+    if ylbl is None:
+        ylbl = yname
     # Name labels
     if dolog2d == True:
-        xlabel = 'log {0}'.format(xname)
-        ylabel = 'log {0}'.format(yname)
+        xlabel = 'log ({0})'.format(xlbl)
+        ylabel = 'log ({0})'.format(ylbl)
     else:
-        xlabel = xname
-        ylabel = yname
+        xlabel = xlbl
+        ylabel = ylbl
 
-    ax.set_xlabel(xlabel, fontsize=14)
+    ax.set_xlabel(xlabel, fontsize=14, labelpad=10)
     ax.set_ylabel(ylabel, fontsize=14)
 
     # Format ticks
@@ -293,6 +299,11 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     ### Arbitrary line plotted for limit I think?
     z = np.linspace(-10, 300)
     ax.plot(z, z)
+    
+    if shift is not None:
+        ax.plot(z, z-shift, color='red', linewidth=4, alpha=0.5)
+        ax.text((xmax-0.0*(xmax-xmin)), (ymax-shift-0.08*(ymax-ymin)), shiftlbl, 
+            horizontalalignment='right', color='r', rotation=45, size=14)
 
     ####### Output file name #######
 
@@ -301,7 +312,7 @@ def histplot(xname=None, yname=None, snrcut=0, dolog2d=False, dolog1d=False, nbi
     else:
         figname = outname
     figname += '.pdf'
-    plt.savefig(figname)
+    plt.savefig(figname, bbox_inches='tight')
     plt.close()
 
 ### Output print statements as a file, .txt
