@@ -178,6 +178,7 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
         p3=re.compile("([^\s,\(]+)=([\d.]+),")
         matches += p3.findall(keep)
         tclnpar = dict(matches)
+        #print(tclnpar)
         # Output parameters
         ax6.text(xleft,ytop-5*ystep,'cell = {0}, imsize = {1}'.format(
             tclnpar['cell'],tclnpar['imsize']), transform=ax6.transAxes)
@@ -187,9 +188,15 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
             tclnpar['niter']), transform=ax6.transAxes)
         ax6.text(xleft,ytop-8*ystep,'threshold = {0}'.format(
             tclnpar['threshold']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-9*ystep,'deconvolver = {0}'.format(
+        if 'startmodel' in tclnpar:
+            ax6.text(xleft,ytop-9*ystep,'startmodel = {0}'.format(
+                tclnpar['startmodel']), transform=ax6.transAxes)
+            ynext = ytop-10*ystep
+        else:
+            ynext = ytop-9*ystep
+        ax6.text(xleft,ynext,'deconvolver = {0}'.format(
             tclnpar['deconvolver']), transform=ax6.transAxes)
-        ynext = ytop-10*ystep
+        ynext = ynext-ystep
         if (tclnpar['deconvolver'] == "multiscale"):
             ax6.text(xleft+xind,ynext,'scales = {0}'.format(
                 tclnpar['scales']), transform=ax6.transAxes)
