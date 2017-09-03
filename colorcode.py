@@ -108,6 +108,7 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.set_xlabel('Structure')
         ax.set_ylabel('Intensity [K]')
+        ax.set_yscale('log')
         p = dendrogram.plotter()
         name = scale_values(cat=cat, type=type, cubhd=cubhd)
         v0, v1 = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type], i=i)
@@ -124,10 +125,10 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         cbar.ax.set_yticklabels(cbar.ax.get_yticklabels(), rotation=90)
         cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=10)
         if label == 'pcc_12':
-            ax.annotate('N', xy=(63, 2.5), xytext=(40, 45),
+            ax.annotate('N', xy=(63, 2.5), xytext=(40, 60),
                 arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,
                 alpha=0.7), xycoords='data', textcoords='offset points')
-            ax.annotate('S', xy=(111, 9), xytext=(-40, 45),
+            ax.annotate('S', xy=(111, 9), xytext=(-60, 20),
                 arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,
                 alpha=0.7), xycoords='data', textcoords='offset points')
         plt.savefig(prefix+'_dendrogram_'+type.replace("_","")+'.pdf', 
