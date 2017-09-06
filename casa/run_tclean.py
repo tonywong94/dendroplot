@@ -1,14 +1,25 @@
-#split(vis="../12m/calibrated_final.ms",
-#        outputvis="../12m/calibrated_src.ms",
-#        datacolumn="data",field="GMC1",spw="1,5,9")
+import os
+import casac
+from tasks import *
+
+'''
+Required parameters and possible options:
+name = ['GMC1' | 'GMC104' | 'A439' | 'N59C']
+line = ['12CO' | '13CO' | 'CS']
+vis12m = '../12m/calibrated_final.ms'
+vis7m  = '../7m/calibrated_final.ms'
+weighting = ['briggs' | 'natural']
+deconvolver = ['clark' | 'multiscale']
+usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
+'''
 
 def run_tclean(name=None, line=None, vis12m=None, vis7m=None, 
         startmodel=None, weighting=None, deconvolver=None, usemask=None, 
-        minpb=None, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
+        minpb=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
         threshold=0.05, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
         maskresolution=2., maskthreshold=4., sidelobethreshold=3.,
         noisethreshold=4., lownoisethreshold=2., smoothfactor=2.,
-        cutthreshold=0.1, minbeamfrac=0.5)
+        cutthreshold=0.1, minbeamfrac=0.5):
 
     # Determine output prefix
     if name is None:
@@ -37,6 +48,7 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
             thisvis = [vis12m, vis7m]
             arrcode = '12m7m'
     if startmodel is not None:
+        print ("Imaging with an initial TP model %s" % startmodel)
         arrcode = '12m7mTPM'
     else:
         startmodel = ''
@@ -60,10 +72,10 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
                 'A439': [250, 250], 'N59C': [250, 250] }
     if arrcode == '7m':
         thissize = imsize2[name]
-        thiscell = '0.5arcsec'
+        thiscell = '2arcsec'
     else:
         thissize = imsize1[name]
-        thiscell = '2arcsec'
+        thiscell = '0.5arcsec'
     nchan = { 'GMC1': 100, 'GMC104': 100, 
               'A439': 150, 'N59C': 200 }
     vstart = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
@@ -72,45 +84,6 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
                     'GMC104': 'J2000 05h21m05.5s -70d13m36s',
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
                     'N59C': 'J2000 05h35m18.8s -67d36m12s'}
-
-
-### Specific parameters for this run
-# niter=10000
-# threshold=0.05
-# pbmask=0.5
-# thisweighting=weighting[0]
-# thisname=prename[2]
-# thisdecon=deconvolver[0]
-# thismask=usemask[0]
-
-### Parameters for deconvolver='multiscale'
-# scales=[0,4,12]
-# smallscalebias=0.6
-
-### Parameters for usemask='auto-thresh' and 'auto-thresh2'
-# maskresolution=2.
-# maskthreshold=4.
-       
-### Parameters for usemask='auto-multithresh'
-# sidelobethreshold=3.
-# noisethreshold=4.
-# lownoisethreshold=2.
-# smoothfactor=2.
-# cutthreshold=0.1
-# minbeamfrac=0.5
-       
-# if thisname == prename[0]:
-#     thisvis=vis[0]
-#     thissize=imsize[0]
-#     thiscell=cell[0]
-# if thisname == prename[1]:
-#     thisvis=vis[1]
-#     thissize=imsize[1]
-#     thiscell=cell[1]
-# if thisname == prename[2]:
-#     thisvis=vis[0:2]
-#     thissize=imsize[0]
-#     thiscell=cell[0]
 
     ### Make the image
     os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
