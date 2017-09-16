@@ -46,7 +46,7 @@ def magma_prep(prefix=None, dofeather=True):
     imhead(imagename=regname+'.magma.rgd.jypix')
 
     # Do the feathering (optional)
-    if dofeather = True:
+    if dofeather == True:
         os.system('rm -rf '+prefix+'TPF.image')
         feather(imagename=prefix+'TPF.image',
                 highres=prefix+'.image', lowres=regname+'.magma.rgd.pb')
