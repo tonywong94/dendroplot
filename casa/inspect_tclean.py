@@ -188,12 +188,14 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
             tclnpar['niter']), transform=ax6.transAxes)
         ax6.text(xleft,ytop-8*ystep,'threshold = {0}'.format(
             tclnpar['threshold']), transform=ax6.transAxes)
+        ax6.text(xleft,ytop-9*ystep,'pblimit = {0}'.format(
+            tclnpar['pblimit']), transform=ax6.transAxes)
         if 'startmodel' in tclnpar:
-            ax6.text(xleft,ytop-9*ystep,'startmodel = {0}'.format(
+            ax6.text(xleft,ytop-10*ystep,'startmodel = {0}'.format(
                 tclnpar['startmodel']), transform=ax6.transAxes)
-            ynext = ytop-10*ystep
+            ynext = ytop-11*ystep
         else:
-            ynext = ytop-9*ystep
+            ynext = ytop-10*ystep
         ax6.text(xleft,ynext,'deconvolver = {0}'.format(
             tclnpar['deconvolver']), transform=ax6.transAxes)
         ynext = ynext-ystep
