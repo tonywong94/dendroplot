@@ -77,9 +77,9 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
         thissize = imsize1[name]
         thiscell = '0.5arcsec'
     nchan = { 'GMC1': 100, 'GMC104': 100, 
-              'A439': 150, 'N59C': 200 }
+              'A439': 150, 'N59C': 250 }                #was 'N59C': 200
     vstart = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
-               'A439': '210km/s', 'N59C': '266km/s' }
+               'A439': '210km/s', 'N59C': '263km/s' }   #was 'N59C': '266km/s'
     phasecenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
                     'GMC104': 'J2000 05h21m05.5s -70d13m36s',
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
@@ -91,7 +91,7 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
            imagename=thisname,
            startmodel=startmodel,
            gridder='mosaic',
-           pblimit=minpb,
+           pblimit=pblimit,
            imsize=thissize,
            cell=thiscell,
            spw=spw,
