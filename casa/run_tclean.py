@@ -15,7 +15,7 @@ usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
 
 def run_tclean(name=None, line=None, vis12m=None, vis7m=None, 
         startmodel=None, weighting=None, deconvolver=None, usemask=None, 
-        minpb=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
+        pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000,
         threshold=0.05, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
         maskresolution=2., maskthreshold=4., sidelobethreshold=3.,
         noisethreshold=4., lownoisethreshold=2., smoothfactor=2.,
