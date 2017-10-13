@@ -15,13 +15,13 @@ Required files:
     ../magma/<regname>.cocub.jyb.fits: The MAGMA cube in Jy/beam units
 '''
 
-def magma_prep(prefix=None, dofeather=True):
+def magma_prep(prefix=None, magmadir='../magma', dofeather=True):
 
     regname=prefix.split('_')[0]
     print("The region name is %s" % regname)
 
     # Regrid MAGMA image and apply ALMA pb gain
-    importfits(fitsimage='../magma/'+regname+'.cocub.jyb.fits', 
+    importfits(fitsimage=magmadir+'/'+regname+'.cocub.jyb.fits', 
         imagename=regname+'.magma.im',
         beam=['45arcsec','45arcsec','0deg'], defaultaxes=True,
         defaultaxesvalues=['','','','I',], overwrite=True)
