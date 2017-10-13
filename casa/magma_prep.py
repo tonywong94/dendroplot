@@ -33,6 +33,7 @@ def magma_prep(prefix=None, dofeather=True):
     os.system('rm -rf '+regname+'.magma.rgd.pb')
     immath(imagename=[regname+'.magma.rgd', prefix+'.pb'], expr='IM0*IM1',
         outfile=regname+'.magma.rgd.pb')
+    imhead(imagename=regname+'.magma.rgd.pb')
 
     # Get conversion factor to Jy/pix
     bmaj=imhead(imagename=regname+'.magma.im',mode='get',hdkey='bmaj')
@@ -54,5 +55,5 @@ def magma_prep(prefix=None, dofeather=True):
         # Export to FITS:
         exportfits(imagename=prefix+'TPF.image', fitsimage=prefix+'TPF.image.fits',
             dropdeg=True, velocity=True, overwrite=True)
-
+    os.system('rm -rf '+regname+'.magma.im '+regname+'.magma.lsrk '+regname+'.magma.rgd')
     return
