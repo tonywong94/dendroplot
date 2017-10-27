@@ -62,7 +62,7 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
     decon_types=['clark', 'multiscale']
     if deconvolver not in decon_types:
         raise ValueError("Invalid deconvolver. Expected one of: %s" % decon_types)
-    mask_types=['pb','auto-thresh','auto-thresh2','auto-multithresh']
+    mask_types=['pb','auto-thresh','auto-thresh2','auto-multithresh','user']
     if usemask not in mask_types:
         raise ValueError("Invalid usemask. Expected one of: %s" % mask_types)
 
