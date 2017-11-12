@@ -34,7 +34,7 @@ def findflux(fitsfile, beamadj=None):
     else:
         return flist/beamadj, totflux/beamadj
 
-def fluxplot(prename = 'GMC1_12CO_12m7m', fileext = 'fits', sig_v0=235, sig_v1=248,outfile=None):
+def fluxplot(prename = 'GMC1_12CO_12m7m', fileext = 'fits', outfile=None):
     image = prename + '.image.' + fileext
     residual = prename + '.residual.' + fileext
     convmodel = prename + '.convmodel.' + fileext
@@ -53,7 +53,6 @@ def fluxplot(prename = 'GMC1_12CO_12m7m', fileext = 'fits', sig_v0=235, sig_v1=2
     plt.step(vlist, flist_c, 'r', label = 'Convmodel')
     plt.axhline(y=0, color='k', linestyle='--')
     plt.legend(loc='upper right')
-    plt.xlim([sig_v0, sig_v1])
     plt.xlabel("Radio velocity [km/s]")
     plt.ylabel("Flux [Jy]")
 
