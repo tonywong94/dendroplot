@@ -34,6 +34,8 @@ def magma_prep(prefix=None, magmadir='../magma', dofeather=True):
     immath(imagename=[regname+'.magma.rgd', prefix+'.pb'], expr='IM0*IM1',
         outfile=regname+'.magma.rgd.pb')
     imhead(imagename=regname+'.magma.rgd.pb')
+    exportfits(imagename=regname+'.magma.rgd.pb',fitsimage=regname+'.magma.rgd.pb.fits',
+        dropdeg=True, velocity=True, overwrite=True)
 
     # Get conversion factor to Jy/pix
     bmaj=imhead(imagename=regname+'.magma.im',mode='get',hdkey='bmaj')
