@@ -152,7 +152,7 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
     print('\n')
     cat = Table.read(label+'_'+table+'.txt', format='ascii.ecsv')
     # Plot colored ellipses on maps
-    for set in ['leaves', 'clusters']:
+    for set in ['leaves', 'trunks', 'clusters']:
         with open(label+'_'+set+'.txt', 'r') as f:
             reader=csv.reader(f, delimiter=' ')
             a = zip(*reader)

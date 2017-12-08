@@ -54,7 +54,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111)            
-    #ax.set_yscale('log')
+    ax.set_yscale('log')
     ax.set_xlabel('Structure')
     ax.set_ylabel('Intensity ['+hd3['BUNIT']+']')
     p = d.plotter()
