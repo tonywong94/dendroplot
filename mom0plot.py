@@ -8,19 +8,34 @@ from astropy import units as u
 
 def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         labelax='none', xoff=[-60,60], yoff=[-60,60], v0=0., v1=None,
-        cbar_tick=5., ra_tick=8., cmin=0, label=None, outfile=None):
+        cbar_tick=5., ra_tick=8., cmin=0, fov=0.5, label=None, outfile=None):
     # --- Set up plot window
     hdu = fits.open(mom0file)[0]
-    hdu.header.remove('PC03_01')
-    hdu.header.remove('PC03_02')
-    hdu.header.remove('PC01_03')
-    hdu.header.remove('PC02_03')
-    hdu.header.remove('PC03_03')
+    if hdu.header['NAXIS'] == 2:
+        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03', 'CTYPE3', 
+                'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
+            if key in hdu.header.keys():
+                hdu.header.remove(key)
     wcs = WCS(hdu.header)
     fig = plt.figure(figsize=(figsize[0], figsize[1]))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
     lon=ax.coords[0]
     lat=ax.coords[1]
+    # Convert to K km/s if necessary
+    if hdu.header['BUNIT'].lower() == 'jy/beam.km/s':
+        bmaj = hdu.header['BMAJ']*3600.
+        bmin = hdu.header['BMIN']*3600.
+        if 'RESTFREQ' in hdu.header.keys():
+            freq = hdu.header['RESTFREQ'] * u.Hz
+        elif 'RESTFRQ' in hdu.header.keys():
+            freq = hdu.header['RESTFRQ'] * u.Hz
+        omega_B = np.pi/(4*np.log(2)) * bmaj * bmin * u.arcsec**2
+        convfac = (u.Jy).to(u.K, equivalencies=u.brightness_temperature(omega_B,freq))
+        print("Units of the input cube are {}".format(hdu.header['BUNIT']))
+        print("The beam size is {0} x {1} arcsec".format(bmaj,bmin))
+        print("Scaling data by {0} to convert to K".format(convfac))
+        hdu.header['bunit'] = 'K'
+        hdu.data = hdu.data*convfac
     # --- Plot subimage centered on reference pixel
     xminpix = max(0., wcs.wcs.crpix[0] + xoff[0]/abs(3600*wcs.wcs.cdelt[0]) - 0.5)
     xmaxpix = min(hdu.data.shape[1], wcs.wcs.crpix[0] + xoff[1]/abs(3600*wcs.wcs.cdelt[0]) + 0.5)
@@ -37,18 +52,16 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
     print("Contour levels: {}".format(clevs))
     # --- Plot gain
     hdug=fits.open(fluxfile)[0]
-    hdug.header.remove('PC03_01')
-    hdug.header.remove('PC03_02')
-    hdug.header.remove('PC01_03')
-    hdug.header.remove('PC02_03')
-    hdug.header.remove('PC03_03')
-    hdug.header.remove('CTYPE3')
-    hdug.header.remove('CRVAL3')
-    hdug.header.remove('CDELT3')
-    hdug.header.remove('CRPIX3')
-    hdug.header.remove('CUNIT3')
-    ax.contour(hdug.data, transform=ax.get_transform(WCS(hdug.header)),
-        levels=[0.6], colors='red', alpha=0.5, linewidths=1, linestyles='dashed')
+    if hdug.header['NAXIS'] == 2:
+        gaindata = hdug.data
+        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03', 'CTYPE3', 
+                'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
+            if key in hdug.header.keys():
+                hdug.header.remove(key)
+    elif hdug.header['NAXIS'] == 3:
+        gaindata = hdug.data[0]
+    ax.contour(gaindata, transform=ax.get_transform(WCS(hdu.header)),
+        levels=[fov], colors='red', alpha=0.5, linewidths=1, linestyles='dashed')
     # --- Plot labels
     if labelax == 'empty':
         lon.set_ticks_visible(False)
