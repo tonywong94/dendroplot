@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from astropy.wcs import WCS
 from astropy.io import fits
 from astropy import units as u
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         labelax='none', xoff=[-60,60], yoff=[-60,60], v0=0., v1=None,
@@ -18,7 +19,8 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
                 hdu.header.remove(key)
     wcs = WCS(hdu.header)
     fig = plt.figure(figsize=(figsize[0], figsize[1]))
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
+    #ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
+    ax = plt.subplot(projection=wcs)
     lon=ax.coords[0]
     lat=ax.coords[1]
     # Convert to K km/s if necessary
@@ -73,14 +75,21 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         lat.set_major_formatter('dd:mm')
         lon.set_ticklabel(size=10)
         lat.set_ticklabel(size=10)
+        lat.set_ticks_position('left')
         lon.set_ticks(spacing=ra_tick * u.hourangle/3600.)
+        lon.set_ticks_position('bottom')
+        #ax.tick_params(top='off', right='off')
         if labelax == 'full':
             lon.set_axislabel('Right Ascension (J2000)', size=11)
             lat.set_axislabel('Declination (J2000)', size=11)
     if label is not None:
-        ax.text(0.5,1.05,label,ha='center',va='top',fontsize=11,
+        ax.text(0.5,1.08,label,ha='center',va='top',fontsize=11,
             transform=ax.transAxes)
     # --- Plot colorbar
+    #ax2 = plt.gca()
+    #divider = make_axes_locatable(ax2)
+    #cax = divider.append_axes("right", size="5%", pad=0.04)
+    #cbar = plt.colorbar(im, cax=cax, orientation='vertical')
     cbar = plt.colorbar(im, aspect=30, pad=0.03)
     cbar.ax.tick_params(labelsize=10)
     if labelax != 'empty':
