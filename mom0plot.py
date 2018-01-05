@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from astropy.wcs import WCS
 from astropy.io import fits
 from astropy import units as u
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         labelax='none', xoff=[-60,60], yoff=[-60,60], v0=0., v1=None,
@@ -19,7 +18,6 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
                 hdu.header.remove(key)
     wcs = WCS(hdu.header)
     fig = plt.figure(figsize=(figsize[0], figsize[1]))
-    #ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
     ax = plt.subplot(projection=wcs)
     lon=ax.coords[0]
     lat=ax.coords[1]
@@ -72,13 +70,12 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         lat.set_ticklabel_visible(False)
     else:
         lon.set_major_formatter('hh:mm:ss')
-        lat.set_major_formatter('dd:mm')
+        lon.set_ticks(spacing=ra_tick * u.hourangle/3600., exclude_overlapping=True)
+        lon.set_ticks_position('b')
         lon.set_ticklabel(size=10)
+        lat.set_major_formatter('dd:mm')
+        lat.set_ticks_position('l')
         lat.set_ticklabel(size=10)
-        lat.set_ticks_position('left')
-        lon.set_ticks(spacing=ra_tick * u.hourangle/3600.)
-        lon.set_ticks_position('bottom')
-        #ax.tick_params(top='off', right='off')
         if labelax == 'full':
             lon.set_axislabel('Right Ascension (J2000)', size=11)
             lat.set_axislabel('Declination (J2000)', size=11)
