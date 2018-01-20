@@ -45,7 +45,7 @@ def get_limits(vmin=None, vmax=None, datavals=None, i=0):
         if not isinstance(vmin, list): vmin = [vmin]
         v0 = vmin[i]
     if vmax is None:
-        v1 = np.ceil(datavals.max())
+        v1 = datavals.max()
     else:
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
@@ -153,10 +153,11 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
     cat = Table.read(label+'_'+table+'.txt', format='ascii.ecsv')
     # Plot colored ellipses on maps
     for set in ['leaves', 'trunks', 'clusters']:
+        idc = []
         with open(label+'_'+set+'.txt', 'r') as f:
             reader=csv.reader(f, delimiter=' ')
-            a = zip(*reader)
-        idc = map(int,a[0])
+            for row in reader:
+                idc.append(int(row[0]))
         subcat = cat[idc]
         props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
             props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, **kwargs)
