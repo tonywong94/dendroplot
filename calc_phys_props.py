@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import numpy as np
 from astropy import units as u
@@ -33,7 +33,10 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
-        alphascale=1):
+        alphascale=1, ancfile=None, anclabel=None):
+
+    # ancfile - another wavelength image (e.g. 8um) in which to calculate
+    #     mean brightness of each structure
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
@@ -54,7 +57,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     elif hd3['BUNIT'].upper()=='K':
         metadata['data_unit'] = u.K
     else:
-        print "\nWarning: Unrecognized brightness unit"
+        print("\nWarning: Unrecognized brightness unit")
     metadata['vaxis'] = 0
     if 'RESTFREQ' in hd3.keys():
         freq = hd3['RESTFREQ'] * u.Hz
@@ -71,18 +74,26 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     metadata['beam_major'] = bmaj
     metadata['beam_minor'] = bmin
     ppbeam = np.abs((bmaj*bmin)/(cdelt1*cdelt2)*2*np.pi/(8*np.log(2)))
-    print "\nPixels per beam:", ppbeam
+    print("\nPixels per beam: {:.2f}".format(ppbeam))
     indfac = np.sqrt(ppbeam)
 
     # ---- call the bootstrapping routine
-    emaj, emin, epa, evrms, errms, eaxra, eflux, emlum, emvir, ealpha = [
-        np.zeros(len(srclist)) for _ in xrange(10)]
-    print "Calculating property errors..."
+    emaj, emin, epa, evrms, errms, eaxra, eflux, emlum, emvir, ealpha, ancmean, ancrms = [
+        np.zeros(len(srclist)) for _ in range(12)]
+    print("Calculating property errors...")
     for j, clust in enumerate(srclist):
         asgn = np.zeros(cube.shape)
         asgn[d[clust].get_mask(shape = asgn.shape)] = 1
         sindices = np.where(asgn == 1)
         svalues = cube[sindices]
+        
+        if ancfile is not None:
+            collapsedmask = np.amax(asgn, axis = 0)
+            collapsedmask[collapsedmask==0] = np.nan
+            cldname = label.split('_',1)[0]
+            ancdata,anchd = getdata(ancfile, header=True)
+            ancmean[j] = np.nanmean(ancdata*collapsedmask)
+            ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
 
         emmajs, emmins, emomvs, emom0s, pa = clustbootstrap(
             sindices, svalues, metadata, boot_iter)
@@ -169,5 +180,11 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     ptab['e_sigvir']  = Column(emvir)
     ptab['alpha']     = Column(alpha, unit='', description='virial parameter')
     ptab['e_alpha']   = Column(ealpha)
+    if ancfile is not None:
+        if anclabel is None:
+            anclabel = ancimg.replace('.','_').split('_')[1]
+        ptab[anclabel] = Column(ancmean, unit=anchd['BUNIT'])
+        ancferr = indfac * ancrms / ancmean
+        ptab['e_'+anclabel] = Column(ancferr)
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
 
