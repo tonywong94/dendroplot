@@ -153,17 +153,17 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     # Initial guess from simple linear regression
     sorted=np.argsort(x)
     b, a, rval, pval, std_err = stats.linregress(x[sorted], y[sorted])
-    print "\nLineregress parameters: ", a, b
+    print("\nLineregress parameters: ", a, b)
     # Run the fit
     fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, xerr, yerr))
     fitobj.fit(params0=[a, b])
-    print "\n======== Results kmpfit with effective variance ========="
-    print "Fitted parameters:      ", fitobj.params
-    print "Covariance errors:      ", fitobj.xerror
-    print "Standard errors:        ", fitobj.stderr
-    print "Chi^2 min:              ", fitobj.chi2_min
-    print "Reduced Chi^2:          ", fitobj.rchi2_min
-    print "Status Message:", fitobj.message
+    print("\n======== Results kmpfit with effective variance =========")
+    print("Fitted parameters:      ", fitobj.params)
+    print("Covariance errors:      ", fitobj.xerror)
+    print("Standard errors:        ", fitobj.stderr)
+    print("Chi^2 min:              ", fitobj.chi2_min)
+    print("Reduced Chi^2:          ", fitobj.rchi2_min)
+    print("Status Message:", fitobj.message)
     c, d = fitobj.params
     e, f = fitobj.stderr
     # Alternative method using Orthogonal Distance Regression
@@ -179,7 +179,7 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     axes.plot(xmod, ymod, linestyle='--', color=color, zorder=1)
     dfdp = [1, xmod]
     ydummy, upperband, lowerband = fitobj.confidence_band(xmod, dfdp, prob, model)
-    verts = zip(xmod, lowerband) + zip(xmod[::-1], upperband[::-1])
+    verts = list(zip(xmod, lowerband)) + list(zip(xmod[::-1], upperband[::-1]))
     poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3, 
         label="{:g}% conf.".format(prob*100))
     axes.add_patch(poly)
@@ -239,25 +239,30 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     # idc[3] is a list of cluster indices
     idc=[0,0,0,0]
     for i, typ in enumerate(['trunks', 'branches', 'leaves', 'clusters']):
+        idc[i] = []
         with open(label+'_'+typ+'.txt', 'r') as f:
             reader=csv.reader(f, delimiter=' ')
-            a = zip(*reader)
-        idc[i] = map(int,a[0])
+            for row in reader:
+                idc[i].append(int(row[0]))
+#         with open(label+'_'+typ+'.txt', 'r') as f:
+#             reader=csv.reader(f, delimiter=' ')
+#             a = zip(*reader)
+#         idc[i] = map(int,a[0])
 
     # Get the lists of trunk descendants
     f=open(label+'_trunks.txt','r')
     text=f.read()
     trd = []
     for line in text.splitlines():
-        trd.append(map(int, line.split('|')[1].split(',')))
-
+        trd.append(list(map(int, line.split('|')[1].split(','))))
+    
     # Get the lists of cluster descendants and colors
     f=open(label+'_clusters.txt','r')
     text=f.read()
     cld = []
     clco = []
     for line in text.splitlines():
-        cld.append(map(int, line.split('|')[1].split(',')))
+        cld.append(list(map(int, line.split('|')[1].split(','))))
         clco.append(line.split()[1]) 
 
     # Histogram of PAs
@@ -291,8 +296,8 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     x, y, xerr, yerr = [pcat[plotx], pcat[ploty], pcat['e_'+plotx], pcat['e_'+ploty]]
     # Must be positive to take logarithm
     good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
-    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum']
-    cmap = plt.cm.get_cmap('nipy_spectral')
+    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', '8um_avg']
+    cmap = plt.cm.get_cmap('jet')
     for i in range(len(z)):
         fig, axes = plt.subplots()
         axes.set_aspect('equal')
@@ -362,9 +367,10 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         sctplot ( np.log10(x[idsel[2]]), np.log10(y[idsel[2]]), col='green',
             mark='o', mec='k', msize=20, zorder=3, label='leaves' )
         # Plot the best-fitting line and confidence interval
-        linefitting( np.log10(x[unshade]), np.log10(y[unshade]), 
-            xerr=xerr[unshade]/np.log(10), yerr=yerr[unshade]/np.log(10), 
-            xrange=xlims[i], color='b' )
+        if pltname[i] != 'bnd':
+            linefitting( np.log10(x[unshade]), np.log10(y[unshade]), 
+                xerr=xerr[unshade]/np.log(10), yerr=yerr[unshade]/np.log(10), 
+                xrange=xlims[i], color='b' )
         # Make the labels and draw the gray shaded boxes
         std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)

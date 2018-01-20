@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import os
 import csv
@@ -33,16 +33,16 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
 
     # Get cube parameters
     sigma = stats.mad_std(hdu3.data[~np.isnan(hdu3.data)])
-    print 'Robustly estimated RMS: ',sigma
+    print('Robustly estimated RMS: {:.3f}'.format(sigma))
     ppb = 1.133*hd3['bmaj']*hd3['bmin']/(abs(hd3['cdelt1']*hd3['cdelt2']))
-    print 'Pixels per beam: ',ppb
+    print('Pixels per beam: {:.2f}'.format(ppb))
 
     # Make the dendrogram if not present or redo=y
     if redo == 'n' and os.path.isfile(label+'_dendrogram.hdf5'):
-        print 'Loading pre-existing dendrogram'
+        print('Loading pre-existing dendrogram')
         d = Dendrogram.load_from(label+'_dendrogram.hdf5')
     else:
-        print 'Make dendrogram from the full cube'
+        print('Make dendrogram from the full cube')
         d = Dendrogram.compute(hdu3.data, min_value=3*sigma,
             min_delta=2.5*sigma, min_npix=2*ppb, verbose = 1)
         d.save_to(label+'_dendrogram.hdf5')
@@ -66,20 +66,19 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         p.plot_tree(ax, structure=[st], color='black', subtree=False)
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
-    #p.plot_tree(ax, color='black')
     plt.savefig('plots/'+label+'_dendrogram.pdf', bbox_inches='tight')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #   Generate the catalog
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
-    print "Generate a catalog of dendrogram structures"
+    print('Generate a catalog of dendrogram structures')
     metadata = {}
     if hd3['BUNIT'].upper()=='JY/BEAM':
         metadata['data_unit'] = u.Jy / u.beam
     elif hd3['BUNIT'].upper()=='K':
         metadata['data_unit'] = u.K
     else:
-        print "Warning: Unrecognized brightness unit"
+        print('Warning: Unrecognized brightness unit')
     metadata['vaxis'] = 0
     if 'RESTFREQ' in hd3.keys():
         freq = hd3['RESTFREQ'] * u.Hz
@@ -94,7 +93,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     metadata['beam_minor'] = bmin
 
     cat = ppv_catalog(d, metadata)
-    print cat.info()
+    print(cat.info())
 
     # Add additional properties: Average Peak Tb and Maximum Tb
     srclist = cat['_idx'].tolist()
@@ -124,7 +123,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     print("Running SCIMES")
     dclust = SpectralCloudstering(d, cat, criteria = criteria, keepall=True)
-    print dclust.clusters
+    print(dclust.clusters)
 
     print("Visualize the clustered dendrogram")
     dclust.showdendro()
@@ -173,7 +172,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         ellipse = s.to_mpl_ellipse(edgecolor='black', facecolor='none')
         ax.add_patch(ellipse)
         # Make sub-lists of descendants
-        print 'Finding descendants of trunk ',c.idx
+        print('Finding descendants of trunk {}'.format(c.idx))
         desclist = []
         if len(d[c.idx].descendants) > 0:
             for s in d[c.idx].descendants:
@@ -275,7 +274,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         ellipse = s.to_mpl_ellipse(edgecolor='black', facecolor='none')
         ax.add_patch(ellipse)
         # Make sub-lists of descendants
-        print 'Finding descendants of cluster ',c
+        print('Finding descendants of cluster {}'.format(c))
         desclist = []
         if len(d[c].descendants) > 0:
             for s in d[c].descendants:
