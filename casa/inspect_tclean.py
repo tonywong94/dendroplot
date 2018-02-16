@@ -19,12 +19,12 @@ import matplotlib.pyplot as plt
 
 def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None, 
     fileext='fits', sig_v0=None, sig_v1=None, xlims=None, ylims=None,
-    outfile=None):
+    outfile=None, merge=False):
 
-    image   = prename + '.image.' + fileext     # image cube
-    resid   = prename + '.residual.' + fileext  # residual cube
-    model   = prename + '.convmodel.' + fileext # model cube
-    mask    = prename + '.mask.' + fileext      # mask cube
+    image   = prename + '.image.' + fileext                             # image cube
+    resid   = prename + '.residual.' + fileext                          # residual cube
+    model   = prename + '.convmodel.' + fileext                         # model cube
+    mask    = prename + '.mask.' + fileext                              # mask cube
 
     # Integrate the cube over the chosen velocity range
     if os.path.isfile(image):

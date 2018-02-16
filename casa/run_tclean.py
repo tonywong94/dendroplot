@@ -4,8 +4,8 @@ from tasks import *
 
 '''
 Required parameters and possible options:
-name = ['GMC1' | 'GMC104' | 'A439' | 'N59C']
-line = ['12CO' | '13CO' | 'CS']
+name = ['GMC1' | 'GMC104' | 'A439' | 'N59C' | 'N113']
+line = ['12CO' | '13CO' | 'CS' | 'C18O']
 vis12m = '../12m/calibrated_final.ms'
 vis7m  = '../7m/calibrated_final.ms'
 weighting = ['briggs' | 'natural']
@@ -13,9 +13,9 @@ deconvolver = ['clark' | 'multiscale']
 usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
 '''
 
-def run_tclean(name=None, line=None, vis12m=None, vis7m=None, 
+def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None, 
         startmodel=None, weighting=None, deconvolver=None, usemask=None, mask=None,
-        pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000,
+        pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
         threshold=0.05, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
         maskresolution=2., maskthreshold=4., sidelobethreshold=3.,
         noisethreshold=4., lownoisethreshold=2., smoothfactor=2.,
@@ -28,9 +28,16 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
     if line is None:
         print("Assuming line is 12CO")
         line = '12CO'
-    restfreq = {'12CO': '115.2712GHz', 
-                '13CO': '110.201354GHz',
-                'CS': '97.980953GHz'}
+    if level is None:
+        print("Assuming level is 10")
+        line = '10'	
+    restfreq = {'12CO(10)': '115.2712GHz',
+				'12CO(21)': '230.538GHz',
+                '13CO(10)': '110.201354GHz',
+				'13CO(21)': '220.398684GHz',
+				'CS(21)': '97.980953GHz',
+				'C18O(10)': '109.782176GHz',
+				'C18O(21)': '219.560358GHz'}
     if vis12m is None:
         if vis7m is None:
             raise ValueError("Must specify vis12m or vis7m")
@@ -52,9 +59,9 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
         arrcode = '12m7mTPM'
     else:
         startmodel = ''
-    thisname = name+'_'+line+'_'+arrcode
-    if mask is not None:
-        usemask='user'
+
+	thisname = name+'_'+line+'_'+arrcode
+
     # Check parameter choices
     weight_types=['briggs', 'natural']
     if weighting not in weight_types:
@@ -68,9 +75,11 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
 
     # Determine cloud-specific imaging parameters
     imsize1 = { 'GMC1': [1000,800], 'GMC104': [800, 800], 
-                'A439': [800, 800], 'N59C': [800, 800] }
+                'A439': [800, 800], 'N59C': [800, 800],
+				'N113': [500, 500]  }
     imsize2 = { 'GMC1': [250, 250], 'GMC104': [250, 250], 
-                'A439': [250, 250], 'N59C': [250, 250] }
+                'A439': [250, 250], 'N59C': [250, 250], 
+				'N113': [250, 250] }
     if arrcode == '7m':
         thissize = imsize2[name]
         thiscell = '2arcsec'
@@ -78,16 +87,19 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
         thissize = imsize1[name]
         thiscell = '0.5arcsec'
     nchan = { 'GMC1': 100, 'GMC104': 100, 
-              'A439': 150, 'N59C': 250 }                #was 'N59C': 200
+              'A439': 150, 'N59C': 250, 
+			  'N113': 150 }                #was 'N59C': 200
     vstart = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
-               'A439': '210km/s', 'N59C': '263km/s' }   #was 'N59C': '266km/s'
+               'A439': '210km/s', 'N59C': '263km/s',
+			   'N113': '220km/s' }   #was 'N59C': '266km/s'
     phasecenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
                     'GMC104': 'J2000 05h21m05.5s -70d13m36s',
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
-                    'N59C': 'J2000 05h35m18.8s -67d36m12s'}
+                    'N59C': 'J2000 05h35m18.8s -67d36m12s',
+					'N113': 'J2000 05h13m21.0s -69d22m21s' }
 
     ### Make the image
-    os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
+    #os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
     tclean(vis=thisvis,
            imagename=thisname,
            startmodel=startmodel,
@@ -103,7 +115,7 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
            start=vstart[name],
            nchan=nchan[name],
            restoringbeam='common',
-           restfreq=restfreq[line],
+           restfreq=restfreq[line+'('+level+')'],
            outframe=outframe,
            veltype='radio',
            niter=niter,
@@ -111,6 +123,7 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
            smallscalebias=smallscalebias,
            deconvolver=deconvolver,
            usemask=usemask,
+		   mask=mask,
            maskresolution=maskresolution,
            maskthreshold=maskthreshold,
            sidelobethreshold=sidelobethreshold,
@@ -131,7 +144,6 @@ def run_tclean(name=None, line=None, vis12m=None, vis7m=None,
         minor=str(imhdr['beamminor']['value'])+imhdr['beamminor']['unit'],
         pa=str(imhdr['beampa']['value'])+imhdr['beampa']['unit'],
         outfile=thisname+'.convmodel', overwrite=True)
-
     # Export to FITS
     exportfits(imagename=thisname+'.image',fitsimage=thisname+'.image.fits',
         dropdeg=True,velocity=True,overwrite=True)
