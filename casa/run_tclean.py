@@ -52,14 +52,16 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
             arrcode = '12m'
         else:
             print ("Imaging both 12m and 7m data together")
-            thisvis = [vis12m, vis7m]
+            thisvis = vis12m + vis7m
             arrcode = '12m7m'
     if startmodel is not None:
         print ("Imaging with an initial TP model %s" % startmodel)
         arrcode = '12m7mTPM'
     else:
         startmodel = ''
-
+	
+	# print (spw)
+	# print (thisvis)
 	thisname = name+'_'+line+'_'+arrcode
 
     # Check parameter choices
@@ -76,16 +78,25 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
     # Determine cloud-specific imaging parameters
     imsize1 = { 'GMC1': [1000,800], 'GMC104': [800, 800], 
                 'A439': [800, 800], 'N59C': [800, 800],
-				'N113': [500, 500]  }
+				'N113': [500, 500]  }		#was [500, 500]
     imsize2 = { 'GMC1': [250, 250], 'GMC104': [250, 250], 
                 'A439': [250, 250], 'N59C': [250, 250], 
-				'N113': [250, 250] }
+				'N113': [128, 128] }
+
     if arrcode == '7m':
         thissize = imsize2[name]
         thiscell = '2arcsec'
     else:
         thissize = imsize1[name]
         thiscell = '0.5arcsec'
+	if name == 'N113' and level == '21':
+		if arrcode == '7m':
+			thissize = [128, 128]
+			thiscell = '2arcsec'
+		else:
+			thissize = [1000, 1000]
+			thiscell = '0.2arcsec'
+
     nchan = { 'GMC1': 100, 'GMC104': 100, 
               'A439': 150, 'N59C': 250, 
 			  'N113': 150 }                #was 'N59C': 200
@@ -97,7 +108,6 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
                     'N59C': 'J2000 05h35m18.8s -67d36m12s',
 					'N113': 'J2000 05h13m21.0s -69d22m21s' }
-
     ### Make the image
     #os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
     tclean(vis=thisvis,
