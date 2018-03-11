@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import numpy as np
 from astropy import units as u
@@ -36,48 +36,52 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
     cat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
     srclist = cat['_idx'].tolist()
     for col in ['mlte', 'e_mlte', 'siglte', 'e_siglte', 'e_mlte_alt']:
-        cat[col] = np.zeros(np.size(srclist))
+        newcol = Column(name=col, data=np.zeros(np.size(srclist)))
         
         if col == 'mlte':
             data = getdata(n13cub)
-            cat[col].description = 'LTE mass using H2/13CO='+str(co13toh2)
+            newcol.description = 'LTE mass using H2/13CO='+str(co13toh2)
         elif col == 'e_mlte':
             data = getdata(n13cub_uc[0])
-            cat[col].description = 'fractional unc in mlte'
+            newcol.description = 'fractional unc in mlte'
         elif col == 'siglte':
             data == getdata(n13cub)
-            cat[col].description = 'LTE mass divided by area in pc2'
+            newcol.description = 'LTE mass divided by area in pc2'
         elif col == 'e_siglte':
             data = getdata(n13cub_uc[0])
-            cat[col].description = 'fractional unc in siglte [same as e_lte]'
+            newcol.description = 'fractional unc in siglte [same as e_lte]'
         elif col == 'e_mlte_alt':
             if len(n13cub_uc) > 1:
                 data = getdata(n13cub_uc[1])
-                cat[col].description = 'fractional unc in mlte from alt approach'
+                newcol.description = 'fractional unc in mlte from alt approach'
             else:
-                cat.remove_column(col)
                 break
         
         for i, c in enumerate(srclist):
             mask = d[c].get_mask()
             if (col == 'mlte' or col == 'siglte'):
-                cat[col][i] = np.nansum(data[np.where(mask)])
+                newcol[i] = np.nansum(data[np.where(mask)])
             else:
-                cat[col][i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
-        
-        # Multiply by channel width in km/s and area in cm^2 to get molecule number 
-        cat[col] *= deltav * pix2cm.value**2
-        # Convert from molecule number to mass including He
-        cat[col] *= co13toh2 * 2 * 1.36 * const.m_p / const.M_sun
-       
-        if col == 'mlte':
-            cat[col].unit = 'solMass'
-        elif col == 'siglte':
-            cat[col] /= cat['area_pc2']
-            cat[col].unit = 'solMass/pc2'
-        else:
-            cat[col] /= cat['mlte']
+                newcol[i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
 
+        # Multiply by channel width in km/s and area in cm^2 to get molecule number 
+        newcol *= deltav * pix2cm.value**2
+        # Convert from molecule number to solar masses including He
+        at_to_solmass = 8.411579469870226e-58
+        newcol *= co13toh2 * 2 * 1.36 * at_to_solmass
+
+        if col == 'mlte':
+            newcol.unit = 'solMass'
+        elif col == 'siglte':
+            newcol /= cat['area_pc2']
+            newcol.unit = 'solMass/pc2'
+        else:
+            newcol /= cat['mlte']
+            newcol.unit = ''
+
+        cat.add_column(newcol)
+      
+    #cat.pprint(show_unit=True)
     cat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
 
     return

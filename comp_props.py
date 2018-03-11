@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import numpy as np
-#import os
+import os
 #import sys
-#import re
+import re
 import csv
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -24,7 +24,8 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='k',
         zdata = cat[zaxis]
     goodidx = (xdata>0) & (ydata>0)
     if leaves:
-        with open(ecsvfile.replace('physprop','leaves'), 'r') as f:
+        leavelist=re.sub('physprop\w*', 'leaves', ecsvfile)
+        with open(leavelist, 'r') as f:
             reader=csv.reader(f, delimiter=' ')
             a = zip(*reader)
         idcs = map(int,a[0])
@@ -149,12 +150,16 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                 fig, axes = plt.subplots()
                 for j, reg in enumerate(clouds):
                     dir = indir.replace('CLOUD', reg)
+                    if os.path.isfile(dir+reg+'_'+line+'_physprop_add.txt'):
+                        infile = dir+reg+'_'+line+'_physprop_add.txt'
+                    else:
+                        infile = dir+reg+'_'+line+'_physprop.txt'
                     if type in ['8um_avg', 'siglum']:
                         if type == 'siglum' and line == '12':
                             norm = LogNorm(vmin=10, vmax=1000)
                         else:
                             norm = LogNorm(vmin=1, vmax=100)
-                        plot_ecsv(dir+reg+'_'+line+'_physprop.txt', xplot[i], yplot[i],
+                        plot_ecsv(infile, xplot[i], yplot[i],
                             zaxis=type, cmap=cmap, mark=markers[j], mec='gray', msize=8,
                             zorder=i, label=reg, leaves=leaves, norm=norm)               
                     else:
@@ -163,7 +168,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                         else:
                             norm = LogNorm(vmin=min(cldtab[type]), vmax=max(cldtab[type]))
                         colr=np.array(cmap(norm(cldtab[type][j])))
-                        plot_ecsv(dir+reg+'_'+line+'_physprop.txt', xplot[i], yplot[i], 
+                        plot_ecsv(infile, xplot[i], yplot[i], 
                             col=colr, mark=markers[j], mec='gray', msize=8, zorder=i, 
                             label=reg, leaves=leaves)
                 axes.set_xlim(10**xlims[i][0], 10**xlims[i][1])
@@ -180,7 +185,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                     axes.text(10**(xlims[i][1]-0.05), 10**(ylims[i][1]-0.8), 'S87', 
                         horizontalalignment='right', color='r', rotation=30)
                 else:
-                    if yplot[i] == 'mlumco':
+                    if yplot[i].startswith('m'):
                         ymod = ymod * 100
                     axes.plot(xmod, ymod, '--', marker=None, color='k')
                 # Lines of constant external pressure

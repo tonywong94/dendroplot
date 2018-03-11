@@ -33,14 +33,14 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
-        alphascale=1, ancfile=None, anclabel=None):
+        alphascale=1, distpc=4.8e4, ancfile=None, anclabel=None):
 
     # ancfile - another wavelength image (e.g. 8um) in which to calculate
     #     mean brightness of each structure
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
-    dist    = 4.8e4 * u.pc  # Freedman & Madore 2010
+    dist    = distpc * u.pc  # Freedman & Madore 2010
     as2     = 1 * u.arcsec**2
     asarea  = (as2*dist**2).to(u.pc**2,equivalencies=u.dimensionless_angles())
 
