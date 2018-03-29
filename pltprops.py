@@ -299,6 +299,8 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', '8um_avg']
     cmap = plt.cm.get_cmap('jet')
     for i in range(len(z)):
+        if z[i] not in cat.keys() and z[i] not in pcat.keys():
+            continue
         fig, axes = plt.subplots()
         axes.set_aspect('equal')
         plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
