@@ -2,19 +2,24 @@ import os
 import casac
 from tasks import *
 
-def mergemask(mask1=None, mask2=None,mask3=None,name='GMC104'):
-	regrid=name+'_12CO_12m.maskrgd'
-	merge=name+'_12CO_12m7m.mergemask'
-	imregrid(imagename=mask1,template=mask2,output=regrid,interpolation='nearest',overwrite=True)
+def mergemask(name='GMC104', line='12CO', file7m=None, file12m=None, cropping=0.5):
+	#cropping goes out to two decimals
+    mask7m = file7m+'/'+name+'_'+line+'_7m.mask'
+    mask12m = file12m+'/'+name+'_'+line+'_12m.mask'
+    regrid = name+'_'+line+'_12m.maskrgd'
+    merge = name+'_'+line+'_12m7m.mergemask'
 
-	os.system('rm -rf '+merge)
-	immath(imagename=[mask2,regrid],expr='max(IM0,IM1)',outfile=merge)
-	if mask3 is not None:
-		imregrid(imagename=mask3,template=mask2,output=regrid+'2',interpolation='nearest',overwrite=True)
+    imregrid(imagename=mask7m,template=mask12m,output=regrid,interpolation='nearest',overwrite=True)
+    os.system('rm -rf '+merge)
+    immath(imagename=[mask12m,regrid],expr='max(IM0,IM1)',outfile=merge)
 
-		os.system('rm -rf '+merge+'2')
-		immath(imagename=[merge,regrid+'2'],expr='IM0*IM1',outfile=merge+'2')
+    if cropping is not None:
+        maskpb = file12m+'/'+name+'_'+line+'_12m.pb'
+        crop = name+'_'+line+'_12m7m.croppedmask'
+        os.system('rm -rf '+ crop)
+        immath(imagename=[merge,maskpb],expr='iif(IM1>%4.2f,IM0,0.)'%cropping,outfile=crop)
+        #exportfits(imagename=crop,fitsimage=crop+'.fits',dropdeg=True,velocity=True,overwrite=True)
 
-		os.system('rm -rf '+regrid+'2')
-	#exportfits(imagename=merge,fitsimage=merge+'.fits',dropdeg=True,velocity=True,overwrite=True)
-	os.system('rm -rf '+regrid)
+    #exportfits(imagename=merge,fitsimage=merge+'.fits',dropdeg=True,velocity=True,overwrite=True)
+    os.system('rm -rf '+ regrid)
+
