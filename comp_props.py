@@ -118,7 +118,7 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='k',
 
 # Main program
 def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
-            indir=None, leaves=False, cmap_name='gist_rainbow',
+            indir=None, leaves=False, cmap_name='gist_rainbow', mec='gray',
             xplot=['rad_pc'],
             yplot=['vrms_k'],
             xlims=[[-1,1.5]],
@@ -160,7 +160,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                         else:
                             norm = LogNorm(vmin=1, vmax=100)
                         plot_ecsv(infile, xplot[i], yplot[i],
-                            zaxis=type, cmap=cmap, mark=markers[j], mec='gray', msize=8,
+                            zaxis=type, cmap=cmap, mark=markers[j], mec=mec, msize=8,
                             zorder=i, label=reg, leaves=leaves, norm=norm)               
                     else:
                         if type == 'med_co':
@@ -169,7 +169,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                             norm = LogNorm(vmin=min(cldtab[type]), vmax=max(cldtab[type]))
                         colr=np.array(cmap(norm(cldtab[type][j])))
                         plot_ecsv(infile, xplot[i], yplot[i], 
-                            col=colr, mark=markers[j], mec='gray', msize=8, zorder=i, 
+                            col=colr, mark=markers[j], mec=mec, msize=8, zorder=i, 
                             label=reg, leaves=leaves)
                 axes.set_xlim(10**xlims[i][0], 10**xlims[i][1])
                 axes.set_ylim(10**ylims[i][0], 10**ylims[i][1])
@@ -185,7 +185,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                     axes.text(10**(xlims[i][1]-0.05), 10**(ylims[i][1]-0.8), 'S87', 
                         horizontalalignment='right', color='r', rotation=30)
                 else:
-                    if yplot[i].startswith('m'):
+                    if xplot[i].startswith('area') and yplot[i].startswith('m'):
                         ymod = ymod * 100
                     axes.plot(xmod, ymod, '--', marker=None, color='k')
                 # Lines of constant external pressure
