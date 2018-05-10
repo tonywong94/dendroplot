@@ -17,7 +17,7 @@ from astropy.table import Table, Column
 from scimes import SpectralCloudstering
 
 def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None, 
-    redo='n', **kwargs):
+    bmajas=None, bminas=None, rfreq=None, redo='n', **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -30,6 +30,12 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         for key in ['CTYPE4', 'CRVAL4', 'CDELT4', 'CRPIX4', 'CUNIT4', 'NAXIS4']:
             if key in hd3.keys():
                 hd3.remove(key)
+
+    # Provide beam info if missing
+    if bmajas is not None:
+        hd3['bmaj'] = bmajas/3600.
+    if bminas is not None:
+        hd3['bmin'] = bminas/3600.
 
     # Get cube parameters
     sigma = stats.mad_std(hdu3.data[~np.isnan(hdu3.data)])
@@ -80,13 +86,16 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     else:
         print('Warning: Unrecognized brightness unit')
     metadata['vaxis'] = 0
-    if 'RESTFREQ' in hd3.keys():
-        freq = hd3['RESTFREQ'] * u.Hz
-    elif 'RESTFRQ' in hd3.keys():
-        freq = hd3['RESTFRQ'] * u.Hz
+    if rfreq is None:
+        if 'RESTFREQ' in hd3.keys():
+            freq = hd3['RESTFREQ'] * u.Hz
+        elif 'RESTFRQ' in hd3.keys():
+            freq = hd3['RESTFRQ'] * u.Hz
+    else:
+        freq = rfreq * u.GHz
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
     metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
-    metadata['velocity_scale'] =  hd3['cdelt3'] * u.meter / u.second
+    metadata['velocity_scale'] =  abs(hd3['cdelt3']) * u.meter / u.second
     bmaj = hd3['bmaj']*3600. * u.arcsec # FWHM
     bmin = hd3['bmin']*3600. * u.arcsec # FWHM
     metadata['beam_major'] = bmaj

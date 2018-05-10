@@ -65,10 +65,10 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         freq = hd3['RESTFRQ'] * u.Hz
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
     metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
-    metadata['velocity_scale'] =  hd3['cdelt3'] * u.meter / u.second
+    metadata['velocity_scale'] =  abs(hd3['cdelt3']) * u.meter / u.second
     cdelt1 = hd3['cdelt1']*3600. * u.arcsec
     cdelt2 = hd3['cdelt1']*3600. * u.arcsec
-    deltav = hd3['cdelt3']/1000. * u.km / u.s
+    deltav = abs(hd3['cdelt3'])/1000. * u.km / u.s
     bmaj = hd3['bmaj']*3600. * u.arcsec # FWHM
     bmin = hd3['bmin']*3600. * u.arcsec # FWHM
     metadata['beam_major'] = bmaj
