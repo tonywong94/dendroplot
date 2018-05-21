@@ -14,9 +14,8 @@ workdir = '/Volumes/Scratch3/tonywong/CLOUD/analysis/dendro/'
 
 redo = 'y'   # whether to regenerate dendrogram.hdf file
 
-doclouds = ['A439', 'GMC1', 'GMC104', 'N59C', '30Dor']
-#doclouds = ['A439', 'GMC1', 'GMC104', 'N59C', '30Dor', 'PCC']
-#doclouds = ['PCC']
+#doclouds = ['A439']
+doclouds = ['A439', 'GMC1', 'GMC104', 'N59C', '30Dor', 'PCC']
 dolines = ['12', '13']
 anclbl = '8um_avg'
 ancimg = 'CLOUD_8um_3p5as.image.fits.gz'
@@ -51,6 +50,9 @@ for cloud in doclouds:
                 mom0file=mom0file, redo=redo)
             calc_phys_props(label=label, cubefile=cubefile, efloor=0.1,
                 alphascale=ascale, ancfile=ancfil, anclabel=anclbl)
+            if os.path.isfile('../lte/'+cloud+'_peak_n13cube.fits.gz'):
+                add_ltemass(label=label, n13cub='../lte/'+cloud+'_peak_n13cube.fits.gz', 
+                    n13cub_uc='../lte/'+cloud+'_peak_n13cubeerr.fits.gz')
             colorcode(label=label, cubefile=cubefile, mom0file=mom0file, 
                 outdir='plots', types=['v_cen','v_rms'])
         finally:
