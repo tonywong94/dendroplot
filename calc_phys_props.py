@@ -8,7 +8,24 @@ from astrodendro.analysis import ScalarStatistic, PPVStatistic
 from astropy.table import Table, Column
 from astropy.io.fits import getdata
 from astropy.stats import mad_std
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
+
+'''
+PURPOSE: Create the physprop.txt table from the dendrogram catalog.
+    Required keywords:
+        label: prefix for dendrogram & catalog, e.g. 'pcc_12' for pcc_12_dendrogram.hdf5
+        cubefile: FITS cube from which dendrogram was derived
+    Optional keywords:
+        boot_iter: number of bootstrap iterations, defaults to 400
+        efloor: minimum fractional error to assume, defaults to 0
+        alphascale: scaling of \alpha_CO vs. Galactic, defaults to 1
+        distpc: distance in pc for mass calculation, defaults to 48000 
+            (LMC; Freedman & Madore 2010)
+        ancfile: another wavelength image (e.g. 8um) in which to calculate
+            mean brightness of each structure.  Can be 2D image or cube, but
+            either way should be already regridded to match 'cubefile'
+        anclabel: label for column corresponding to ancfile (e.g. '8um_avg')
+'''
 
 def clustbootstrap(sindices, svalues, meta, bootstrap):
     bootiters = range(bootstrap)
@@ -23,7 +40,6 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
         # ... and generate new statistics
         bscalstats = ScalarStatistic(bvalues,bindices)
         bstats = PPVStatistic(bscalstats, meta)
-        #print bstats.major_sigma
         emmajs.append(bstats.major_sigma.value)
         emmins.append(bstats.minor_sigma.value)
         emomvs.append(bstats.v_rms.value)
@@ -35,12 +51,9 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         alphascale=1, distpc=4.8e4, ancfile=None, anclabel=None):
 
-    # ancfile - another wavelength image (e.g. 8um) in which to calculate
-    #     mean brightness of each structure
-
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
-    dist    = distpc * u.pc  # Freedman & Madore 2010
+    dist    = distpc * u.pc
     as2     = 1 * u.arcsec**2
     asarea  = (as2*dist**2).to(u.pc**2,equivalencies=u.dimensionless_angles())
 
@@ -88,12 +101,15 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         svalues = cube[sindices]
         
         if ancfile is not None:
-            collapsedmask = np.amax(asgn, axis = 0)
-            collapsedmask[collapsedmask==0] = np.nan
-            cldname = label.split('_',1)[0]
             ancdata,anchd = getdata(ancfile, header=True)
-            ancmean[j] = np.nanmean(ancdata*collapsedmask)
-            ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
+            if anchd['NAXIS'] = 2:
+                collapsedmask = np.amax(asgn, axis = 0)
+                collapsedmask[collapsedmask==0] = np.nan
+                ancmean[j] = np.nanmean(ancdata*collapsedmask)
+                ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
+            else:
+                ancmean[j] = np.nanmean(ancdata*asgn)
+                ancrms[j] = np.sqrt(np.nanmean((ancdata*asgn)**2)-ancmean[j]**2)
 
         emmajs, emmins, emomvs, emom0s, pa = clustbootstrap(
             sindices, svalues, metadata, boot_iter)
@@ -187,4 +203,3 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         ancferr = indfac * ancrms / ancmean
         ptab['e_'+anclabel] = Column(ancferr)
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
-

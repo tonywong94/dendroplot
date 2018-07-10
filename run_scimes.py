@@ -17,7 +17,7 @@ from astropy.table import Table, Column
 from scimes import SpectralCloudstering
 
 def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None, 
-    bmajas=None, bminas=None, rfreq=None, redo='n', **kwargs):
+    bmajas=None, bminas=None, rfreq=None, redo='n', verbose=True, **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -50,7 +50,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     else:
         print('Make dendrogram from the full cube')
         d = Dendrogram.compute(hdu3.data, min_value=3*sigma,
-            min_delta=2.5*sigma, min_npix=2*ppb, verbose = 1)
+            min_delta=2.5*sigma, min_npix=2*ppb, verbose=verbose)
         d.save_to(label+'_dendrogram.hdf5')
 
     # checks/creates directory to place plots
@@ -101,7 +101,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     metadata['beam_major'] = bmaj
     metadata['beam_minor'] = bmin
 
-    cat = ppv_catalog(d, metadata)
+    cat = ppv_catalog(d, metadata, verbose=verbose)
     print(cat.info())
 
     # Add additional properties: Average Peak Tb and Maximum Tb

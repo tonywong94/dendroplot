@@ -3,30 +3,35 @@
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
-from astrodendro import Dendrogram, ppv_catalog, analysis
+from astrodendro import Dendrogram
 from astropy.io.fits import getheader, getdata
 from astropy.table import Table, Column
 
-def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
+'''
+PURPOSE: Add columns to physprop.txt table based on LTE analysis.
+    Required keywords:
+        label: prefix for table, e.g. 'pcc_12' for pcc_12_physprop.txt
+        n13cub: name of 13CO column density cube FITS image
+        n13cub_uc: 13CO column density uncertainty cube, can be a list of up to 2 cubes
+    Optional keywords:
+        distpc: distance in pc for mass calculation, defaults to 48000 (LMC)
+        co13toh2: H2/13CO abundance ratio, defaults to 5.0e6 (Indebeouw+ 13)
+'''
+
+def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None,
+        distpc = 4.8e4, co13toh2 = 5.0e6):
 
     # Make the uncertainty input a list
     if not isinstance(n13cub_uc, list): n13cub_uc = [n13cub_uc]
-# Input parameters
-# lines = ['12', '13']
-# ltedir = '../lte/'
-# n13cube    = ltedir+'PCC_cube_n13cub.fits.gz'
-# n13cub_uc1 = ltedir+'PCC_cube_n13cuberr.fits.gz'
-# n13cub_uc2 = ltedir+'PCC_noise_25_itrs_rms_n13cub.fits.gz'
 
     # Adopted parameters
-    distpc = 4.8e4 * u.pc
-    co13toh2 = 5.0e6  # Indebetouw+ 13
+    dist = distpc * u.pc
 
     # Get basic info from header
     hd = getheader(n13cub)
     deltav = hd['cdelt3']/1000.
     pixdeg = hd['cdelt2']
-    pix2cm = (np.radians(pixdeg) * distpc).to(u.cm)
+    pix2cm = (np.radians(pixdeg) * dist).to(u.cm)
     ppbeam = np.abs((hd['bmaj']*hd['bmin'])/(hd['cdelt1']*hd['cdelt2'])
         *2*np.pi/(8*np.log(2)))
     osamp  = np.sqrt(ppbeam)
@@ -67,8 +72,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None):
         # Multiply by channel width in km/s and area in cm^2 to get molecule number 
         newcol *= deltav * pix2cm.value**2
         # Convert from molecule number to solar masses including He
-        at_to_solmass = 8.411579469870226e-58
-        newcol *= co13toh2 * 2 * 1.36 * at_to_solmass
+        newcol *= co13toh2 * 2 * 1.36 * const.m_p / const.M_sun
 
         if col == 'mlte':
             newcol.unit = 'solMass'
