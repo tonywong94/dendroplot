@@ -65,7 +65,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
     # Load 12CO uncertainty [2D plane]
     print('\nReading {0}...'.format(inrms12))
     t12err, hd2d = fits.getdata(inrms12, header = True)
-    print('min/max values of 12CO uncertainty are {0:.2f} and {1:.2f}'.format(
+    print('min/max values of 12CO uncertainty are {0:.3f} and {1:.3f}'.format(
         np.nanmin(t12err), np.nanmax(t12err)))
 
     # Load 12CO mask [3D cube or 2D plane]
@@ -125,7 +125,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
     # Load 13CO uncertainty [2D plane]
     print('\nReading {0}...'.format(inrms13))
     t13err, hd2d = fits.getdata(inrms13, header = True)
-    print('min/max values of 13CO uncertainty are {0:.2f} and {1:.2f}'.format(
+    print('min/max values of 13CO uncertainty are {0:.3f} and {1:.3f}'.format(
         np.nanmin(t13err), np.nanmax(t13err)))
 
     # Calculate 13CO optical depth cube
@@ -163,7 +163,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
     print('\nCalculating error in tau13...')
     #tau13err = (t13err/10.6)/(1/(np.exp(10.6/tex)-1)-1/(np.exp(10.6/2.73)-1))
     tau13err = (t13err*u.K/t0_13)/(1/(np.exp(t0_13/tex)-1)-1/(np.exp(t0_13/tcmb)-1))
-    print('min/max values of 13CO tau uncertainty are {0:.2f} and {1:.2f}'.format(
+    print('min/max values of 13CO tau uncertainty are {0:.3f} and {1:.3f}'.format(
         np.nanmin(tau13err), np.nanmax(tau13err)))
 
     if (len(onlywrite) == 0) or ('outtau13err' in onlywrite) == True:
@@ -220,10 +220,10 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
 
     # Calculate integrated column density and error maps
     print('\nCalculating integrated column density and error...')
-    n13col = np.nansum(n13, axis = 0) * (hd3d['cdelt3']/1000.) * u.km/u.s
+    n13col = np.nansum(n13, axis = 0) * abs(hd3d['cdelt3']/1000.) * u.km/u.s
     n13col[np.all(np.isnan(n13), axis=0)] = np.nan
     with np.errstate(all = 'ignore'):
-        n13colerr = np.sqrt(np.nansum(n13ecube**2, axis = 0)) * (
+        n13colerr = np.sqrt(np.nansum(n13ecube**2, axis = 0)) * abs(
             hd3d['cdelt3']/1000.) * u.km/u.s
         n13colerr[np.all(np.isnan(n13ecube), axis=0)] = np.nan
     print('min/max values of N(13CO) are {0:.4E} and {1:.4E}'.format(

@@ -102,7 +102,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         
         if ancfile is not None:
             ancdata,anchd = getdata(ancfile, header=True)
-            if anchd['NAXIS'] = 2:
+            if anchd['NAXIS'] == 2:
                 collapsedmask = np.amax(asgn, axis = 0)
                 collapsedmask[collapsedmask==0] = np.nan
                 ancmean[j] = np.nanmean(ancdata*collapsedmask)

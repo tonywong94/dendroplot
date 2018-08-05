@@ -29,7 +29,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None,
 
     # Get basic info from header
     hd = getheader(n13cub)
-    deltav = hd['cdelt3']/1000.
+    deltav = np.abs(hd['cdelt3']/1000.)
     pixdeg = hd['cdelt2']
     pix2cm = (np.radians(pixdeg) * dist).to(u.cm)
     ppbeam = np.abs((hd['bmaj']*hd['bmin'])/(hd['cdelt1']*hd['cdelt2'])
@@ -66,13 +66,17 @@ def add_ltemass(label = 'pcc_12', n13cub = None, n13cub_uc = None,
             mask = d[c].get_mask()
             if (col == 'mlte' or col == 'siglte'):
                 newcol[i] = np.nansum(data[np.where(mask)])
+                # nansum returns zero if all are NaN, want NaN
+                chknan = np.asarray(np.isnan(data[np.where(mask)]))
+                if chknan.all():
+                    newcol[i] = np.nan
             else:
                 newcol[i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
 
         # Multiply by channel width in km/s and area in cm^2 to get molecule number 
         newcol *= deltav * pix2cm.value**2
         # Convert from molecule number to solar masses including He
-        newcol *= co13toh2 * 2 * 1.36 * const.m_p / const.M_sun
+        newcol *= co13toh2 * 2 * 1.36 * const.m_p.value / const.M_sun.value
 
         if col == 'mlte':
             newcol.unit = 'solMass'
