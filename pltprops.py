@@ -58,8 +58,10 @@ def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k',
 def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
     # Axis labels
     mapping = { 'mvir':'virial mass', 
-        'mlumco':'luminous mass',
+        'mlumco':'CO-based mass',
         'mlte':'LTE mass',
+        'flux12':'Integrated $^{12}$CO flux',
+        'flux13':'Integrated $^{13}$CO flux',
         'siglum':'$\Sigma$, CO-based',
         'siglte':'$\Sigma$, LTE-based',
         'sigvir':'$\Sigma$, virial',
@@ -99,9 +101,12 @@ def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
         # Conversion from n to M/R^3
         ntom = (4*np.pi/3)*(1.36*2*const.m_p.cgs/u.cm**3).to(u.Msun/u.pc**3).value
         # 10**2, 10**3 and 10**4 mol cm^-3
-        axes.plot(xmod, np.log10(ntom)+3*xmod+2, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
-        axes.plot(xmod, np.log10(ntom)+3*xmod+3, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
-        axes.plot(xmod, np.log10(ntom)+3*xmod+4, alpha=.5, color='r', ls=':', lw=2, zorder=-1)
+        axes.plot(xmod, np.log10(ntom)+3*xmod+2, alpha=.5, color='r', ls=':', 
+            lw=2, zorder=-1)
+        axes.plot(xmod, np.log10(ntom)+3*xmod+3, alpha=.5, color='r', ls=':', 
+            lw=2, zorder=-1)
+        axes.plot(xmod, np.log10(ntom)+3*xmod+4, alpha=.5, color='r', ls=':', 
+            lw=2, zorder=-1)
     # Lines of constant surface density
     if axvar[0] == 'area_pc2' and axvar[1].startswith('m'):
         xmod = np.linspace(xlims[0],xlims[1],20)
@@ -116,13 +121,18 @@ def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
         axes.text(-0.6, 3.25, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
             color='g', rotation=-45)
         ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
-        axes.plot(xmod, ymod2, linestyle='-', color='m', lw=1)
+        axes.plot(xmod, ymod2, linestyle=':', color='m', lw=1)
         axes.text(-0.95, 1.6, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
             color='m', rotation=-45)
     # If axes have identical units then plot y=x line
     if cat[axvar[0]].unit == cat[axvar[1]].unit:
         xmod = np.linspace(xlims[0],xlims[1],20)
-        axes.plot(xmod, xmod, linestyle='-', color='k')
+        # Plot nominal R(12/13) of 8
+        if axvar[0] == 'flux12' and axvar[1] == 'flux13':
+            ymod = xmod - np.log10(8)
+        else:
+            ymod = xmod
+        axes.plot(xmod, ymod, linestyle=':', color='k')
     # Set plot limits and labels
     axes.set_xlim(xlims[0], xlims[1])
     axes.set_ylim(ylims[0], ylims[1])
@@ -173,7 +183,7 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     myoutput = myodr.run()
     myoutput.pprint()
     # Plot the results
-    xmod = np.linspace(xrange[0],xrange[1],20)
+    xmod = np.linspace(xrange[0],xrange[1],50)
     #ymod0 = model([a, b], xmod)
     ymod = model([c, d], xmod)
     axes.plot(xmod, ymod, linestyle='--', color=color, zorder=1)
@@ -183,10 +193,10 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3, 
         label="{:g}% conf.".format(prob*100))
     axes.add_patch(poly)
-    #axes.text(0.03,0.95,'slope = $%4.2f$' % b,size=10,transform=axes.transAxes)
-    #axes.text(0.03,0.90,'intercept = $%4.2f$' % a,size=10,transform=axes.transAxes)
+    # The slope
     axes.text(0.03,0.95,'a = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
         f,size=10,transform=axes.transAxes)
+    # The intercept
     axes.text(0.03,0.90,'b = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
         e,size=10,transform=axes.transAxes)
     return
@@ -323,8 +333,13 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
 
     # Main set of scatter plots, as requested by user
     for i in range(len(xplot)):
-        x, y, xerr, yerr = [pcat[xplot[i]], pcat[yplot[i]], pcat['e_'+xplot[i]], 
-            pcat['e_'+yplot[i]]]
+        if 'e_'+xplot[i] in pcat.keys() and 'e_'+yplot[i] in pcat.keys():
+            x, y, xerr, yerr = [pcat[xplot[i]], pcat[yplot[i]], pcat['e_'+xplot[i]], 
+                pcat['e_'+yplot[i]]]
+        else:
+            x, y = [pcat[xplot[i]], pcat[yplot[i]]]
+            xerr = x*0 + 0.1
+            yerr = y*0 + 0.1
         # Must be positive to take logarithm
         good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
         # Restrict indices of subsets to good values
@@ -369,7 +384,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         sctplot ( np.log10(x[idsel[2]]), np.log10(y[idsel[2]]), col='green',
             mark='o', mec='k', msize=20, zorder=3, label='leaves' )
         # Plot the best-fitting line and confidence interval
-        if pltname[i] != 'bnd':
+        if pltname[i] not in ['bnd', 'bndlte']:
             linefitting( np.log10(x[unshade]), np.log10(y[unshade]), 
                 xerr=xerr[unshade]/np.log(10), yerr=yerr[unshade]/np.log(10), 
                 xrange=xlims[i], color='b' )
@@ -422,9 +437,10 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         unshade2 = idsel[3][:]
         unshade2 = [val for val in idsel[3] if val in unshade.tolist()]
         # Plot best-fitting line to clusters only
-        linefitting( np.log10(x[unshade2]), np.log10(y[unshade2]), 
-            xerr=xerr[unshade2]/np.log(10), yerr=yerr[unshade2]/np.log(10), 
-            xrange=xlims[i], color='b' )
+        if pltname[i] not in ['bnd', 'bndlte']:
+            linefitting( np.log10(x[unshade2]), np.log10(y[unshade2]), 
+                xerr=xerr[unshade2]/np.log(10), yerr=yerr[unshade2]/np.log(10), 
+                xrange=xlims[i], color='b' )
         for j, tno in enumerate(idsel[3]):
             clsel = cld[j][:]
             clsel = [val for val in cld[j] if val in good.tolist()]
