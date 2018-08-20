@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
@@ -21,6 +22,9 @@ PURPOSE: Create the physprop.txt table from the dendrogram catalog.
         alphascale: scaling of \alpha_CO vs. Galactic, defaults to 1
         distpc: distance in pc for mass calculation, defaults to 48000 
             (LMC; Freedman & Madore 2010)
+        copbcor: primary-beam corrected 12CO cube to measure XCO-based mass
+        conoise: RMS noise cube or map corresponding to copbcor, required if
+            copbcor is given
         ancfile: another wavelength image (e.g. 8um) in which to calculate
             mean brightness of each structure.  Can be 2D image or cube, but
             either way should be already regridded to match 'cubefile'
@@ -49,7 +53,7 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
-        alphascale=1, distpc=4.8e4, ancfile=None, anclabel=None):
+        alphascale=1, distpc=4.8e4, copbcor=None, conoise=None, ancfile=None, anclabel=None):
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
@@ -76,22 +80,43 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         freq = hd3['RESTFREQ'] * u.Hz
     elif 'RESTFRQ' in hd3.keys():
         freq = hd3['RESTFRQ'] * u.Hz
-    metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
-    metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
-    metadata['velocity_scale'] =  abs(hd3['cdelt3']) * u.meter / u.second
-    cdelt1 = hd3['cdelt1']*3600. * u.arcsec
-    cdelt2 = hd3['cdelt1']*3600. * u.arcsec
+    cdelt1 = abs(hd3['cdelt1']) * 3600. * u.arcsec
+    cdelt2 = abs(hd3['cdelt2']) * 3600. * u.arcsec
     deltav = abs(hd3['cdelt3'])/1000. * u.km / u.s
+    metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
+    metadata['spatial_scale']  =  cdelt2
+    metadata['velocity_scale'] =  deltav
     bmaj = hd3['bmaj']*3600. * u.arcsec # FWHM
     bmin = hd3['bmin']*3600. * u.arcsec # FWHM
     metadata['beam_major'] = bmaj
     metadata['beam_minor'] = bmin
     ppbeam = np.abs((bmaj*bmin)/(cdelt1*cdelt2)*2*np.pi/(8*np.log(2)))
     print("\nPixels per beam: {:.2f}".format(ppbeam))
-    indfac = np.sqrt(ppbeam)
+    # Assume every 2 channels have correlated noise
+    indfac = np.sqrt(ppbeam*2)
+
+    # ---- read in ancillary files
+    if copbcor is not None and conoise is not None:
+        cube12, hd12 = getdata(copbcor, header=True)
+        ecube12, ehd12 = getdata(conoise, header=True)
+        if 'RESTFREQ' in hd12.keys():
+            freq12 = hd12['RESTFREQ'] * u.Hz
+        elif 'RESTFRQ' in hd12.keys():
+            freq12 = hd12['RESTFRQ'] * u.Hz
+        else:
+            print('Rest frequency missing from file '+copbcor)
+            raise
+        if hd12['BUNIT'].upper() != 'K':
+            print('Non-Kelvin units not yet supported for copbcor')
+            raise
+        if ehd12['NAXIS'] == 2:
+            tmpcube = np.broadcast_to(ecube12, np.shape(cube12))
+            ecube12 = tmpcube
+    if ancfile is not None:
+        ancdata,anchd = getdata(ancfile, header=True)
 
     # ---- call the bootstrapping routine
-    emaj, emin, epa, evrms, errms, eaxra, eflux, emlum, emvir, ealpha, ancmean, ancrms = [
+    emaj, emin, epa, evrms, errms, eaxra, eflux, emvir, ealpha, tb12, ancmean, ancrms = [
         np.zeros(len(srclist)) for _ in range(12)]
     print("Calculating property errors...")
     for j, clust in enumerate(srclist):
@@ -99,17 +124,6 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         asgn[d[clust].get_mask(shape = asgn.shape)] = 1
         sindices = np.where(asgn == 1)
         svalues = cube[sindices]
-        
-        if ancfile is not None:
-            ancdata,anchd = getdata(ancfile, header=True)
-            if anchd['NAXIS'] == 2:
-                collapsedmask = np.amax(asgn, axis = 0)
-                collapsedmask[collapsedmask==0] = np.nan
-                ancmean[j] = np.nanmean(ancdata*collapsedmask)
-                ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
-            else:
-                ancmean[j] = np.nanmean(ancdata*asgn)
-                ancrms[j] = np.sqrt(np.nanmean((ancdata*asgn)**2)-ancmean[j]**2)
 
         emmajs, emmins, emomvs, emom0s, pa = clustbootstrap(
             sindices, svalues, metadata, boot_iter)
@@ -137,10 +151,24 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         evrms[j]  = indfac * mad_std(bootvrms) / np.median(bootvrms)
         errms[j]  = indfac * mad_std(bootrrms) / np.median(bootrrms)    
         eaxra[j]  = indfac * mad_std(bootaxrat)/ np.median(bootaxrat)
-        eflux[j]  = indfac * mad_std(bootflux) / np.median(bootflux)
-        emlum[j]  = eflux[j]
         emvir[j]  = indfac * mad_std(bootmvir) / np.median(bootmvir)
         ealpha[j] = indfac * mad_std(bootalpha)/ np.median(bootalpha)
+
+        if copbcor is not None and conoise is not None:
+            tb12[j]  = np.nansum(asgn * cube12)
+            eflux[j] = indfac * np.sqrt(np.nansum(asgn * ecube12**2)) / tb12[j]
+            #print(j, len(svalues), tb12[j], etb12[j])
+        else:
+            eflux[j]  = indfac * mad_std(bootflux) / np.median(bootflux)
+        if ancfile is not None:
+            if anchd['NAXIS'] == 2:
+                collapsedmask = np.amax(asgn, axis = 0)
+                collapsedmask[collapsedmask==0] = np.nan
+                ancmean[j] = np.nanmean(ancdata*collapsedmask)
+                ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
+            else:
+                ancmean[j] = np.nanmean(ancdata*asgn)
+                ancrms[j] = np.sqrt(np.nanmean((ancdata*asgn)**2)-ancmean[j]**2)
 
     # ---- report the median uncertainties
     print( "The median fractional error in rad_pc is {:2.4f}"
@@ -167,10 +195,16 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         u.pc**2,equivalencies=u.dimensionless_angles())
     xctarea = (cat['area_exact']*dist**2).to(
         u.pc**2,equivalencies=u.dimensionless_angles())
-    # lumco = Luminosity in K km/s pc^2
-    lumco  = deltav * asarea * (cat['flux']).to(
-        u.K,equivalencies=u.brightness_temperature(as2,freq))
-    mlumco = alphaco * alphascale * lumco
+    if copbcor is not None and conoise is not None:
+        # Convert from K*pix*ch to Jy*km/s
+        #convfac = (1*u.K).to(u.Jy/u.arcsec**2, equivalencies=u.brightness_temperature(freq12))
+        #flux12 = tb12 * deltav.value * convfac.value * cdelt2.value**2
+        mlumco = alphaco * alphascale * tb12*u.K * deltav * asarea * cdelt2.value**2
+    else:
+        # lumco = Luminosity in K km/s pc^2
+        lumco  = deltav * asarea * (cat['flux']).to(
+            u.K,equivalencies=u.brightness_temperature(as2,freq))
+        mlumco = alphaco * alphascale * lumco
     siglum = mlumco/xctarea
     mvir   = (5*rmstorad*v_rms**2*rms_pc/const.G).to(u.solMass)  # Rosolowsky+ 08
     sigvir = mvir / xctarea
@@ -179,23 +213,28 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     # ---- make the physical properties table
     ptab = Table()
     ptab['_idx']      = Column(srclist)
-    ptab['area_pc2']  = Column(xctarea)
-    ptab['rad_pc']    = Column(rad_pc)
-    ptab['e_rad_pc']  = Column(errms)
-    ptab['vrms_k']    = Column(v_rms)
-    ptab['e_vrms_k']  = Column(evrms)
-    ptab['axratio']   = Column(axrat, unit='')
-    ptab['e_axratio'] = Column(eaxra)
-    ptab['mlumco']    = Column(mlumco)
-    ptab['e_mlumco']  = Column(eflux)
-    ptab['siglum']    = Column(siglum, description='average surface density')
-    ptab['e_siglum']  = Column(eflux)
-    ptab['mvir']      = Column(mvir)
-    ptab['e_mvir']    = Column(emvir)
+    ptab['area_pc2']  = Column(xctarea, description='projected area of structure')
+    ptab['rad_pc']    = Column(rad_pc, description='equivalent radius in pc')
+    ptab['e_rad_pc']  = Column(errms, description='frac error in radius')
+    ptab['vrms_k']    = Column(v_rms, description='rms linewidth in km/s')
+    ptab['e_vrms_k']  = Column(evrms, description='frac error in linewidth')
+    ptab['axratio']   = Column(axrat, unit='', description='minor to major axis ratio')
+    ptab['e_axratio'] = Column(eaxra, description='frac error in axis ratio')
+    if copbcor is not None and conoise is not None:
+        #ptab['flux12']    = Column(flux12, unit='Jy km / s', description='CO flux in structure')
+        #ptab['e_flux12']  = Column(eflux, description='frac error in CO flux')
+        ptab['mlumco']    = Column(mlumco, description='CO-based mass with alphascale='+str(alphascale)+' from '+os.path.basename(copbcor))
+    else:
+        ptab['mlumco']    = Column(mlumco, description='Mass from scaling luminosity with alphascale='+str(alphascale))
+    ptab['e_mlumco']  = Column(eflux, description='frac error in luminous mass')
+    ptab['siglum']    = Column(siglum, description='average surface density from mlumco')
+    ptab['e_siglum']  = Column(eflux, description='same as e_mlumco')
+    ptab['mvir']      = Column(mvir, description='virial mass')
+    ptab['e_mvir']    = Column(emvir, description='frac error in virial mass')
     ptab['sigvir']    = Column(sigvir, description='virial surface density')
-    ptab['e_sigvir']  = Column(emvir)
+    ptab['e_sigvir']  = Column(emvir, description='same as e_mvir')
     ptab['alpha']     = Column(alpha, unit='', description='virial parameter')
-    ptab['e_alpha']   = Column(ealpha)
+    ptab['e_alpha']   = Column(ealpha, description='frac error in virial parameter')
     if ancfile is not None:
         if anclabel is None:
             anclabel = ancimg.replace('.','_').split('_')[1]
