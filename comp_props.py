@@ -2,17 +2,17 @@
 
 import numpy as np
 import os
-#import sys
 import re
 import csv
 import matplotlib as mpl
 from matplotlib import pyplot as plt
+from matplotlib import ticker
 from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter, LogFormatter
 from matplotlib.colors import Normalize, LogNorm
 #from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 
 # General Scatter Plot
 def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='k', 
@@ -50,8 +50,26 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='k',
     axes.set_xscale('log')
     axes.set_yscale('log')
     axes.set_aspect('equal')
-    axes.set_xlabel(xaxis+' ['+str(xdata.unit)+']')
-    axes.set_ylabel(yaxis+' ['+str(ydata.unit)+']')
+    mapping = { 'mvir':'virial mass', 
+        'mlumco':'CO-based mass',
+        'mlte':'LTE mass',
+        'flux12':'Integrated $^{12}$CO flux',
+        'flux13':'Integrated $^{13}$CO flux',
+        'siglum':'$\Sigma$, CO-based',
+        'siglte':'$\Sigma$, LTE-based',
+        'sigvir':'$\Sigma$, virial',
+        'rad_pc':'spherical radius',
+        'vrms_k':'rms linewidth',
+        'area_pc2':'projected area',
+       }
+    axlbl=['','']
+    for i, axis in enumerate([xaxis, yaxis]):
+        if axis in mapping.keys():
+            axlbl[i] = mapping[axis]
+        else:
+            axlbl[i] = axis
+    axes.set_xlabel('log '+axlbl[0]+' ['+str(xdata.unit)+']')
+    axes.set_ylabel('log '+axlbl[1]+' ['+str(ydata.unit)+']')
     # Do a linear regression fit if requested
     if linfit is not None:
         sorted=np.argsort(xdata)
@@ -63,56 +81,6 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='k',
         axes.text(0.03,0.95,'slope = $%4.2f$' % m,size=9,transform=axes.transAxes)
         axes.text(0.03,0.90,'intercept = $%4.2f$' % b,size=9,transform=axes.transAxes)
     return
-
-# -------------------------------------------------------------------------------
-
-# allclouds = ['30Dor', 'N59C', 'A439', 'GMC104', 'GMC1', 'PCC']
-# dolines = ['12', '13']
-# dotypes = ['med_8u', 'med_co', 'avg_st', 'med_24', '8um_avg', 'siglum']
-# 
-# markers = ['o', 'v', '^', 's', '<', 'D']
-# cmap = plt.get_cmap('gist_rainbow')
-# leaves = False
-
-# Table of cloud-averaged properties
-# t = Table(names=('cld', 'med_8u', 'med_co', 'avg_st', 'med_24'), 
-#     dtype=('S6', 'f4', 'f4', 'f4', 'f4'))
-# t.add_row(('30Dor', 36.8732, 2.0518, 0.8101, 386.8365))
-# t.add_row(('N59C',   8.1936, 3.0875, 0.3671,  12.8014))
-# t.add_row(('A439',   2.6004, 3.2009, 0.6587,   1.2010))
-# t.add_row(('GMC104', 1.5529, 4.4368, 1.7162,   0.6574))
-# t.add_row(('GMC1',   1.1792, 2.0274, 0.3059,   0.5231))
-# t.add_row(('PCC',    0.7974, 1.4606, 0.5502,   0.1617))
-# # Convert stellar surf density to Msol/pc^2
-# t['avg_st'] = t['avg_st'] * 62.5
-
-# x = ['rad_pc', 'vrms_k', 'area_pc2', 'mlumco', 'siglum']
-# y = ['vrms_k', 'mlumco', 'mlumco'  , 'mvir'  , 'sigvir']
-# xlims = [[-1,1.5], [-2,2],   [-1,4], [-0.5,5.5], [-1,4]]
-# ylims = [[-2,1.5], [-1,5.5], [-2,6], [-0.5,5.5], [-1,4]]
-# name  = ['rdv', 'dvflux', 'areaflux' , 'virial' , 'bnd']
-# slp =  [0.5, 4, 1, 1, 1]
-# yoff = [np.log10(0.72), 2, 2, 0, 0]
-# pad  = [0.05, 0.02, 0.03, 0.13, 0.13]
-
-# Correlations to plot
-# x = ['rad_pc', 'area_pc2', 'siglum', '8um_avg']
-# y = ['vrms_k', 'mlumco'  , 'sigvir', 'sigvir']
-# xlims = [[-1,1.5], [-1,3], [-1,4], [-0.5,3.5]]
-# ylims = [[-2,1.5], [-1,6], [-1,4], [-1,4]]
-# name  = ['rdv', 'areaflux' , 'bnd', 'bnd2']
-# slp =  [0.5, 1, 1, 1]
-# yoff = [np.log10(0.72), 2, 0, 0]
-# pad  = [0.03, 0.01, 0.13, 0.13]
-
-# x = ['siglum']
-# y = ['sigvir']
-# xlims = [[-1,4]]
-# ylims = [[-1,4]]
-# name  = ['bnd']
-# slp =  [1]
-# yoff = [ 0]
-# pad  = [0.13]
 
 # -------------------------------------------------------------------------------
 
@@ -173,8 +141,10 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                             label=reg, leaves=leaves)
                 axes.set_xlim(10**xlims[i][0], 10**xlims[i][1])
                 axes.set_ylim(10**ylims[i][0], 10**ylims[i][1])
-                axes.xaxis.set_major_formatter(FormatStrFormatter('%g'))
-                axes.yaxis.set_major_formatter(FormatStrFormatter('%g'))
+                logfmt = ticker.LogFormatterExponent(base=10.0, labelOnlyBase=True)
+                axes.xaxis.set_major_formatter(logfmt)
+                axes.yaxis.set_major_formatter(logfmt)
+                axes.minorticks_off()
                 # Reference slopes
                 xmod = np.logspace(xlims[i][0], xlims[i][1], 100)
                 ymod = xmod**slope[i]
@@ -185,6 +155,10 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                     axes.text(10**(xlims[i][1]-0.05), 10**(ylims[i][1]-0.8), 'S87', 
                         horizontalalignment='right', color='r', rotation=30)
                 else:
+                    # Plot nominal R(12/13) of 8
+                    if xplot[i] == 'flux12' and yplot[i] == 'flux13':
+                        ymod = ymod / 8
+                    # Plot nominal Sigma_mol of 100 Msol/pc^2
                     if xplot[i].startswith('area') and yplot[i].startswith('m'):
                         ymod = ymod * 100
                     axes.plot(xmod, ymod, '--', marker=None, color='k')
@@ -203,7 +177,7 @@ def comp_props(dolines, dotypes=['med_8u'], clouds=None, markers=None,
                 # Legend and colorbar
                 plt.legend(loc='lower right',fontsize='small',numpoints=1,markerscale=2)
                 cax = fig.add_axes([pad[i]+0.7, 0.11, 0.02, 0.77])
-                formatter = LogFormatter(10, labelOnlyBase=False, minor_thresholds=(4,3))
+                formatter = ticker.LogFormatter(10, labelOnlyBase=False, minor_thresholds=(4,3))
                 if type == 'med_co':
                     cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
                 else:
