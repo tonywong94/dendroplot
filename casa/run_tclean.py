@@ -30,7 +30,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
         line = '12CO'
     if level is None:
         print("Assuming level is 10")
-        line = '10'	
+        level = '10'	
     restfreq = {'12CO(10)': '115.2712GHz',
 				'12CO(21)': '230.538GHz',
                 '13CO(10)': '110.201354GHz',
