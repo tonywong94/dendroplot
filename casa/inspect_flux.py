@@ -40,13 +40,13 @@ def fluxplot(prename = 'GMC1_12CO_12m7m', fileext = 'fits', outfile=None):
     convmodel = prename + '.convmodel.' + fileext
     
     flist_i, flux_i, vlist, vint, beamadj = findflux(image)
-    print "Flux of the Image =                      %4.2f [Jy km/s]" %flux_i
+    print("Flux of the Image =                      %4.2f [Jy km/s]" %flux_i)
     
     flist_r, flux_r = findflux(residual, beamadj=beamadj)
-    print "Flux of the Residual =                   %4.2f [Jy km/s]" %flux_r
+    print("Flux of the Residual =                   %4.2f [Jy km/s]" %flux_r)
     
     flist_c, flux_c = findflux(convmodel, beamadj=beamadj)
-    print "Flux of the Convolved Model =            %4.2f [Jy km/s]" %flux_c
+    print("Flux of the Convolved Model =            %4.2f [Jy km/s]" %flux_c)
 
     plt.step(vlist, flist_i, 'b', label = 'Image')
     plt.step(vlist, flist_r, 'g', label = 'Residual')

@@ -52,7 +52,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
             arrcode = '12m'
         else:
             print ("Imaging both 12m and 7m data together")
-            thisvis = vis12m + vis7m
+            thisvis = [vis12m, vis7m]
             arrcode = '12m7m'
     if startmodel is not None:
         print ("Imaging with an initial TP model %s" % startmodel)
