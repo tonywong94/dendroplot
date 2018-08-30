@@ -72,7 +72,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
             data = getdata(n13cub_uc[0])
             newcol.description = 'fractional unc in mlte'
         elif col == 'siglte':
-            data == getdata(n13cub)
+            data = getdata(n13cub)
             newcol.description = 'LTE mass divided by area in pc2'
         elif col == 'e_siglte':
             data = getdata(n13cub_uc[0])
@@ -86,7 +86,7 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
         
         for i, c in enumerate(srclist):
             mask = d[c].get_mask()
-            if (col in ['flux12', 'flux13', 'mlte', 'siglte']):
+            if not col.startswith('e_'):
                 newcol[i] = np.nansum(data[np.where(mask)])
                 # nansum returns zero if all are NaN, want NaN
                 chknan = np.asarray(np.isnan(data[np.where(mask)]))

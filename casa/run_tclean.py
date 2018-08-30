@@ -76,7 +76,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
         raise ValueError("Invalid usemask. Expected one of: %s" % mask_types)
 
     # Determine cloud-specific imaging parameters
-    imsize1 = { 'GMC1': [1000,800], 'GMC104': [800, 800], 
+    imsize1 = { 'GMC1': [1000,1000], 'GMC104': [800, 800], 
                 'A439': [800, 800], 'N59C': [800, 800],
 				'N113': [500, 500]  }		#was [500, 500]
     imsize2 = { 'GMC1': [250, 250], 'GMC104': [250, 250], 
