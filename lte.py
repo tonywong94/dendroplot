@@ -190,7 +190,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
         ntotexp = np.exp(const.h * B * jbot * (jbot+1) / (const.k_B * tex))
         #n13 = prefac * (tex*u.K+hB_3k) * np.exp(5.29/tex) * tau13 / (1 - np.exp(-10.6/tex))
         n13 = prefac * (tex + hB_3k) * ntotexp * tau13 / (1 - np.exp(-t0_13/tex))
-        if tx_method == 'peak':
+        if tx_method == 'peak' and t13err.ndim == 2:
             tau13ecube = np.tile(tau13err, (np.shape(n13)[0], 1, 1))
             n13ecube = (n13/tau13) * tau13ecube
         else:
