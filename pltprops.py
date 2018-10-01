@@ -17,6 +17,7 @@ from kapteyn import kmpfit
 # General Scatter Plot
 def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k', 
            zorder=-5, msize=6, cmap=None, linfit=None, label=None, **kwargs):
+    axes = plt.gca()
     # Single color plot
     if cmap is None and np.size(col) == 1:
         axes.scatter(xdata, ydata, marker=mark, c=col, edgecolors=mec, 
@@ -76,6 +77,7 @@ def std_overlay(cat, axvar, xlims, ylims, shade=[0,0]):
         else:
             axlbl[i] = axvar[i]
     # Plot gray shading indicating resolution limits
+    axes = plt.gca()
     if shade[0] > 0:
         axes.axvspan(-3, np.log10(shade[0]), fc='lightgray', alpha=0.3, lw=0)
     if shade[1] > 0:
@@ -186,6 +188,7 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     xmod = np.linspace(xrange[0],xrange[1],50)
     #ymod0 = model([a, b], xmod)
     ymod = model([c, d], xmod)
+    axes = plt.gca()
     axes.plot(xmod, ymod, linestyle='--', color=color, zorder=1)
     dfdp = [1, xmod]
     ydummy, upperband, lowerband = fitobj.confidence_band(xmod, dfdp, prob, model)
@@ -203,18 +206,16 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
 
 # -------------------------------------------------------------------------------
 
-def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
+def pltprops(label, distpc=4.8e4, dvkms=0.2, beam=2,
             xplot=['rad_pc', 'vrms_k', 'area_pc2'],
             yplot=['vrms_k', 'mlumco',  'mlumco'],
             xlims=[[-1.5,1],   [-2,2],    [-1,3]],
             ylims=[[-2,1.5], [-1.5,4.5],  [-2,4]],
             pltname=['rdv', 'dvflux', 'areaflux']):
 
-    global axes
     deltav  = dvkms * u.km / u.s
     avgbeam = beam * u.arcsec
     dist    = distpc * u.pc
-    freq    = fghz * u.GHz
     # Min radius is FWHM beam converted to rms size then scaled by 1.91
     rmstorad = 1.91
     radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
@@ -305,7 +306,8 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
     ploty = 'vrms_k'
     x, y, xerr, yerr = [pcat[plotx], pcat[ploty], pcat['e_'+plotx], pcat['e_'+ploty]]
     # Must be positive to take logarithm
-    good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
+    #good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
+    postive = (x>0) & (y>0)
     z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', '8um_avg']
     cmap = plt.cm.get_cmap('jet')
     for i in range(len(z)):
@@ -313,17 +315,17 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
             continue
         fig, axes = plt.subplots()
         axes.set_aspect('equal')
-        plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
-            xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
+        plt.errorbar( np.log10(x[postive]), np.log10(y[postive]), 
+            xerr=xerr[postive]/np.log(10), yerr=yerr[postive]/np.log(10), 
             ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
         if z[i] in cat.keys():
             zlbl = z[i]+' ['+str(cat[z[i]].unit)+']'
-            sctplot( np.log10(x[good]), np.log10(y[good]), cat[z[i]][good], 
+            sctplot( np.log10(x[postive]), np.log10(y[postive]), cat[z[i]][postive], 
                 mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
         elif z[i] in pcat.keys():
             zlbl = z[i]+' ['+str(pcat[z[i]].unit)+']'
-            sctplot( np.log10(x[good]), np.log10(y[good]), pcat[z[i]][good], 
+            sctplot( np.log10(x[postive]), np.log10(y[postive]), pcat[z[i]][postive], 
                 mec='none', msize=30, zorder=2, cmap=cmap, label=zlbl )
         std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0], 
             [shade['rad_pc'],shade['vrms_k']])
@@ -341,11 +343,11 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
             xerr = x*0 + 0.1
             yerr = y*0 + 0.1
         # Must be positive to take logarithm
-        good = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
-        # Restrict indices of subsets to good values
+        postive = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
+        # Restrict indices of subsets to positive values
         idsel = idc[:]
         for j in range(4):
-            idsel[j] = [val for val in idc[j] if val in good.tolist()]
+            idsel[j] = [val for val in idc[j] if val in postive.tolist()]
         # Exclude unresolved points from line fitting
         xmin = ymin = 0
         if xplot[i] in shade.keys():
@@ -357,6 +359,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
             if shade[yplot[i]] > 0:
                 ymin = shade[yplot[i]]
         unshade = np.intersect1d(np.where(x>xmin)[0], np.where(y>ymin)[0])
+        #
         # --- Plot trunks, branches, leaves
         fig, axes = plt.subplots()
         if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
@@ -367,11 +370,11 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         reg = label.split('_')[0].upper()
         if reg == '30DOR':
             reg = '30Dor'
-        line = label.split('_')[1]+'CO'
+        line = label.split('_')[1]
         plt.plot([], [], ' ', label=reg+' '+line)
         # Plot the error bars of all points in gray
-        plt.errorbar( np.log10(x[good]), np.log10(y[good]), 
-            xerr=xerr[good]/np.log(10), yerr=yerr[good]/np.log(10), 
+        plt.errorbar( np.log10(x[postive]), np.log10(y[postive]), 
+            xerr=xerr[postive]/np.log(10), yerr=yerr[postive]/np.log(10), 
             ecolor='dimgray', capsize=0, 
             zorder=1, marker=None, ls='None', lw=1, label=None)
         # Plot the trunks as red pentagons
@@ -393,6 +396,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_full.pdf', bbox_inches='tight')
         plt.close()
+        #
         # --- Plot trunks and their descendants
         fig, axes = plt.subplots()
         if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
@@ -409,7 +413,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
         colors = plt.cm.jet(np.linspace(0, 1, len(idsel[0])))
         for j, tno in enumerate(idsel[0]):
             trsel = trd[j][:]
-            trsel = [val for val in trd[j] if val in good.tolist()]
+            trsel = [val for val in trd[j] if val in postive.tolist()]
             plt.errorbar( np.log10(x[trsel]), np.log10(y[trsel]), 
                 xerr=xerr[trsel]/np.log(10), yerr=yerr[trsel]/np.log(10),
                 ecolor='dimgray', capsize=0, 
@@ -422,6 +426,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
             plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
         plt.savefig('plots/'+label+'_'+pltname[i]+'_trunks.pdf', bbox_inches='tight')
         plt.close()
+        #
         # --- Plot clusters and their descendants (get marker color from table)
         fig, axes = plt.subplots()
         if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
@@ -434,7 +439,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
             zorder=2, marker=None, ls='None', lw=1, label=None)
         sctplot ( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), mark='s', 
             zorder=4, col=clco, msize=25 )
-        unshade2 = idsel[3][:]
+        #unshade2 = idsel[3][:]
         unshade2 = [val for val in idsel[3] if val in unshade.tolist()]
         # Plot best-fitting line to clusters only
         if pltname[i] not in ['bnd', 'bndlte']:
@@ -443,7 +448,7 @@ def pltprops(label, fghz=230.538, distpc=4.8e4, dvkms=0.2, beam=2,
                 xrange=xlims[i], color='b' )
         for j, tno in enumerate(idsel[3]):
             clsel = cld[j][:]
-            clsel = [val for val in cld[j] if val in good.tolist()]
+            clsel = [val for val in cld[j] if val in postive.tolist()]
             sctplot ( np.log10(x[clsel]), np.log10(y[clsel]), col='w', 
                 mec=clco[j], zorder=3, msize=10, label='cluster'+str(tno), alpha=0.5 )
         std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
