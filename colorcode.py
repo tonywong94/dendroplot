@@ -153,14 +153,17 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
     cat = Table.read(label+'_'+table+'.txt', format='ascii.ecsv')
     # Plot colored ellipses on maps
     for set in ['leaves', 'trunks', 'clusters']:
-        idc = []
-        with open(label+'_'+set+'.txt', 'r') as f:
-            reader=csv.reader(f, delimiter=' ')
-            for row in reader:
-                idc.append(int(row[0]))
-        subcat = cat[idc]
-        props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
-            props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, **kwargs)
+        try:
+            idc = []
+            with open(label+'_'+set+'.txt', 'r') as f:
+                reader=csv.reader(f, delimiter=' ')
+                for row in reader:
+                    idc.append(int(row[0]))
+            subcat = cat[idc]
+            props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
+                props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, **kwargs)
+        except IOError:
+            print(label,set,'not found')
     # Plot colored dendrogram
     props_coltree(label=label, dendrogram=d, cat=cat, cubhd=hd3, props=types, 
         prefix=outdir+'/'+label, vmin=vmin, vmax=vmax)
