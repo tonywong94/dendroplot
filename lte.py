@@ -183,7 +183,8 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
     mu2 = (0.112 * 1e-18)**2 * u.cm**3 * u.erg  # 0.112 debye for dipole moment of 13CO
     hB_3k = (const.h * B/(3 * const.k_B)).to(u.K)
     cm2perKkms = u.cm**-2*u.s/(u.km*u.K)
-    prefac = (3*(const.h)/(8*np.pi**2*mu2)*const.k_B/((jbot+1)*const.h*B)).to(cm2perKkms)
+    # Changed np.pi**2 to np.pi**3 on 3 May 2019
+    prefac = (3*(const.h)/(8*np.pi**3*mu2)*const.k_B/((jbot+1)*const.h*B)).to(cm2perKkms)
     print('Pre-factor is {0}'.format(prefac))
 
     with np.errstate(invalid = 'ignore', divide = 'ignore'):
