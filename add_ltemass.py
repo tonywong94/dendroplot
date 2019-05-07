@@ -16,12 +16,12 @@ PURPOSE: Add columns to physprop.txt table based on LTE analysis.
     Optional keywords:
         i12cub: name of 12CO intensity cube FITS image (pb corrected)
         i13cub: name of 13CO intensity cube FITS image (pb corrected)
-        distpc: distance in pc for mass calculation, defaults to 48000 (LMC)
+        distpc: distance in pc for mass calculation, defaults to 50000 (LMC)
         co13toh2: H2/13CO abundance ratio, defaults to 5.0e6 (Indebeouw+ 13)
 '''
 
 def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
-        n13cub_uc = None, distpc = 4.8e4, co13toh2 = 5.0e6):
+        n13cub_uc = None, distpc = 5e4, co13toh2 = 5.0e6):
 
     # Make the uncertainty input a list
     if not isinstance(n13cub_uc, list): n13cub_uc = [n13cub_uc]

@@ -210,7 +210,7 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
 
 # -------------------------------------------------------------------------------
 
-def pltprops(label, distpc=4.8e4, dvkms=0.2, beam=2,
+def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
             xplot=['rad_pc', 'vrms_k', 'area_pc2'],
             yplot=['vrms_k', 'mlumco',  'mlumco'],
             xlims=[[-1.5,1],   [-2,2],    [-1,3]],

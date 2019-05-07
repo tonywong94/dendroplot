@@ -20,8 +20,8 @@ PURPOSE: Create the physprop.txt table from the dendrogram catalog.
         boot_iter: number of bootstrap iterations, defaults to 400
         efloor: minimum fractional error to assume, defaults to 0
         alphascale: scaling of \alpha_CO vs. Galactic, defaults to 1
-        distpc: distance in pc for mass calculation, defaults to 48000 
-            (LMC; Freedman & Madore 2010)
+        distpc: distance in pc for mass calculation, defaults to 50000 
+            (LMC)
         copbcor: primary-beam corrected 12CO cube to measure XCO-based mass
         conoise: RMS noise cube or map corresponding to copbcor, required if
             copbcor is given
@@ -53,7 +53,7 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
-        alphascale=1, distpc=4.8e4, copbcor=None, conoise=None, ancfile=None, anclabel=None):
+        alphascale=1, distpc=5e4, copbcor=None, conoise=None, ancfile=None, anclabel=None):
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13

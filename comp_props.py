@@ -11,6 +11,7 @@ from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.colors import Normalize, LogNorm
+from scipy import stats
 #from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
@@ -42,7 +43,8 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, col='g', mark='o', mec='face',
     print('Plotting {} vs {} from file {}'.format(yaxis,xaxis,ecsvfile))
     # Specified colors
     if zaxis is None:
-        axes.scatter(xdata, ydata, marker=mark, c=col, edgecolors=mec, 
+        #print('col is',np.reshape(col,(1,-1)),'mark is',mark)
+        axes.scatter(xdata, ydata, marker=mark, c=np.reshape(col,(1,-1)), edgecolors=mec, 
             zorder=zorder, s=msize, linewidths=0.1, label=label, **kwargs)
     else:
         axes.scatter(xdata, ydata, marker=mark, c=zdata, edgecolors=mec, 
