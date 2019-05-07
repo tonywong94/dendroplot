@@ -5,26 +5,39 @@ import matplotlib.pyplot as plt
 from astropy.wcs import WCS
 from astropy.io import fits
 from astropy import units as u
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.patches import Ellipse
+#from astropy.visualization import ImageNormalize
 
-def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
-        labelax='none', xoff=[-60,60], yoff=[-60,60], v0=0., v1=None,
-        cbar_tick=5., ra_tick=8., cmin=0, fov=0.5, label=None, outfile=None):
+
+def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', distpc=5e4, 
+        figsize=[6,6], labelax='full', xrange=[None,None], yrange=[None,None], 
+        v0=0., v1=None, cmin=0, fov=0.5, cpad=0.1, label=None, outfile=None):
     # --- Set up plot window
     hdu = fits.open(mom0file)[0]
     if hdu.header['NAXIS'] == 2:
-        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03', 'CTYPE3', 
-                'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
+        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03',
+                    'PC3_1', 'PC3_2', 'PC1_3', 'PC2_3', 'PC3_3', 'CTYPE3', 
+                    'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
             if key in hdu.header.keys():
                 hdu.header.remove(key)
+    bmaj = hdu.header['BMAJ']*3600.
+    bmin = hdu.header['BMIN']*3600.
+    if 'BPA' in hdu.header.keys():
+        bpa = hdu.header['BPA']
+    else:
+        bpa = 0.
+    cdel = np.abs(hdu.header['CDELT2']*3600.)
     wcs = WCS(hdu.header)
     fig = plt.figure(figsize=(figsize[0], figsize[1]))
-    ax = plt.subplot(projection=wcs)
-    lon=ax.coords[0]
-    lat=ax.coords[1]
+    print("Image dimensions in pixels:", hdu.data.shape)
+    print("  Beam width in pixels: {:.2f} {:.2f}".format(bmaj/cdel, bmin/cdel))
+    # --- Select the subregion
+    datcut = hdu.data[slice(yrange[0],yrange[1],1),slice(xrange[0],xrange[1],1)]
+    wcscut = wcs[slice(yrange[0],yrange[1],1),slice(xrange[0],xrange[1],1)]
+    ax = plt.subplot(projection=wcscut)
     # Convert to K km/s if necessary
     if hdu.header['BUNIT'].lower() == 'jy/beam.km/s':
-        bmaj = hdu.header['BMAJ']*3600.
-        bmin = hdu.header['BMIN']*3600.
         if 'RESTFREQ' in hdu.header.keys():
             freq = hdu.header['RESTFREQ'] * u.Hz
         elif 'RESTFRQ' in hdu.header.keys():
@@ -35,34 +48,40 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         print("The beam size is {0} x {1} arcsec".format(bmaj,bmin))
         print("Scaling data by {0} to convert to K".format(convfac))
         hdu.header['bunit'] = 'K'
-        hdu.data = hdu.data*convfac
-    # --- Plot subimage centered on reference pixel
-    xminpix = max(0., wcs.wcs.crpix[0] + xoff[0]/abs(3600*wcs.wcs.cdelt[0]) - 0.5)
-    xmaxpix = min(hdu.data.shape[1], wcs.wcs.crpix[0] + xoff[1]/abs(3600*wcs.wcs.cdelt[0]) + 0.5)
-    yminpix = max(0., wcs.wcs.crpix[1] + yoff[0]/abs(3600*wcs.wcs.cdelt[1]) - 0.5)
-    ymaxpix = min(hdu.data.shape[0], wcs.wcs.crpix[1] + yoff[1]/abs(3600*wcs.wcs.cdelt[1]) + 0.5)
-    print("xmin, xmax, ymin, ymax: {} {} {} {}".format(xminpix,xmaxpix,yminpix,ymaxpix))
-    ax.set_xlim(xminpix, xmaxpix)
-    ax.set_ylim(yminpix, ymaxpix)
+        datcut *= convfac
+    # --- Plot image
     if v1 is None:
-        v1 = np.nanmax(hdu.data)
-    im = ax.imshow(hdu.data, origin='lower', vmin=v0, vmax=v1, cmap=cmap)
+        v1 = np.nanmax(datcut)
+        print("  Image range: {} to {}".format(v0,v1))
+    im = ax.imshow(datcut, origin='lower', cmap=cmap, vmin=v0, vmax=v1)
     clevs = np.logspace(cmin, cmin+6, 7, base=2)
-    ax.contour(hdu.data, levels=clevs, colors='blue', alpha=0.7, linewidths=0.7)
-    print("Contour levels: {}".format(clevs))
+    ax.contour(datcut, levels=clevs, colors='blue', alpha=0.7, linewidths=0.7)
+    print("  Contour levels: {}".format(clevs))
     # --- Plot gain
     hdug=fits.open(fluxfile)[0]
     if hdug.header['NAXIS'] == 2:
-        gaindata = hdug.data
-        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03', 'CTYPE3', 
-                'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
+        gaincut = hdug.data[slice(yrange[0],yrange[1],1),slice(xrange[0],xrange[1],1)]
+        for key in ['PC03_01', 'PC03_02', 'PC01_03', 'PC02_03', 'PC03_03',
+                    'PC3_1', 'PC3_2', 'PC1_3', 'PC2_3', 'PC3_3', 'CTYPE3', 
+                    'CRVAL3', 'CDELT3','CRPIX3', 'CUNIT3', 'NAXIS3']:
             if key in hdug.header.keys():
                 hdug.header.remove(key)
     elif hdug.header['NAXIS'] == 3:
-        gaindata = hdug.data[0]
-    ax.contour(gaindata, transform=ax.get_transform(WCS(hdu.header)),
+        gaincut = hdug.data[0][slice(xrange[0],xrange[1],1),slice(yrange[0],yrange[1],1)]
+    ax.contour(gaincut, transform=ax.get_transform(wcscut),
         levels=[fov], colors='red', alpha=0.5, linewidths=1, linestyles='dashed')
+    # --- Plot beam and parsec scale
+    axis_to_data = ax.transAxes + ax.transData.inverted()
+    beamx, beamy = axis_to_data.transform([0.1,0.08])
+    beam = Ellipse(xy=(beamx,beamy), width=bmaj/cdel, height=bmin/cdel, angle=90+bpa, 
+                edgecolor=None, facecolor='blue')
+    beampc = bmaj*distpc/206265.
+    beamstr = f'{beampc:.1f} pc'
+    ax.add_patch(beam)
+    ax.annotate(beamstr, (0.1,0.025), xycoords='axes fraction', ha='center')
     # --- Plot labels
+    lon=ax.coords[0]
+    lat=ax.coords[1]
     if labelax == 'empty':
         lon.set_ticks_visible(False)
         lon.set_ticklabel_visible(False)
@@ -70,27 +89,34 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', figsize=[6,6],
         lat.set_ticklabel_visible(False)
     else:
         lon.set_major_formatter('hh:mm:ss')
-        lon.set_ticks(spacing=ra_tick * u.hourangle/3600., exclude_overlapping=True)
+        #lon.set_ticks(spacing=ra_tick * u.hourangle/3600.)
         lon.set_ticks_position('b')
-        lon.set_ticklabel(size=10)
+        lon.set_ticklabel(size=10, exclude_overlapping=True)
         lat.set_major_formatter('dd:mm')
+        #lat.set_major_formatter('dd:mm:ss')
         lat.set_ticks_position('l')
+        #lat.set_ticks(spacing=dc_tick * u.degree/60.)
         lat.set_ticklabel(size=10)
-        if labelax == 'full':
+        if labelax != 'tickonly':
             lon.set_axislabel('Right Ascension (J2000)', size=11)
             lat.set_axislabel('Declination (J2000)', size=11)
     if label is not None:
-        ax.text(0.5,1.08,label,ha='center',va='top',fontsize=11,
+        ax.text(0.95,0.97,label,ha='right',va='top',fontsize=13,
             transform=ax.transAxes)
     # --- Plot colorbar
-    #ax2 = plt.gca()
-    #divider = make_axes_locatable(ax2)
-    #cax = divider.append_axes("right", size="5%", pad=0.04)
-    #cbar = plt.colorbar(im, cax=cax, orientation='vertical')
-    cbar = plt.colorbar(im, aspect=30, pad=0.03)
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="4%", pad=cpad)
+    cbar = plt.colorbar(im, cax=cax, orientation='vertical')
     cbar.ax.tick_params(labelsize=10)
-    if labelax != 'empty':
-        cbar.set_label('Integrated Intensity [K km/s]',fontsize=11)
+    cbar.ax.coords[0].set_ticks_visible(False)
+    cbar.ax.coords[0].set_ticklabel_visible(False)
+    cbar.ax.coords[0].grid(False)
+    cbar.ax.coords[1].grid(False)
+    cbar.ax.coords[1].set_ticklabel_position('r')
+    cbar.ax.coords[1].set_ticks_position('r')
+    cbar.ax.coords[1].set_axislabel_position('r')
+    if labelax == 'full':
+        cbar.set_label('Integrated Intensity [K km/s]',fontsize=12)
     # --- Save PDF file
     if outfile is None:
         outfile = 'mom0plot.pdf'
