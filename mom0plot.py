@@ -72,13 +72,18 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', distpc=5e4,
         levels=[fov], colors='red', alpha=0.5, linewidths=1, linestyles='dashed')
     # --- Plot beam and parsec scale
     axis_to_data = ax.transAxes + ax.transData.inverted()
-    beamx, beamy = axis_to_data.transform([0.1,0.08])
+    beamx, beamy = axis_to_data.transform([0.04,0.04])
     beam = Ellipse(xy=(beamx,beamy), width=bmaj/cdel, height=bmin/cdel, angle=90+bpa, 
                 edgecolor=None, facecolor='blue')
     beampc = bmaj*distpc/206265.
-    beamstr = f'{beampc:.1f} pc'
+    #beamstr = f'{beampc:.1f} pc'
     ax.add_patch(beam)
-    ax.annotate(beamstr, (0.1,0.025), xycoords='axes fraction', ha='center')
+    #ax.annotate(beamstr, (0.1,0.025), xycoords='axes fraction', ha='center')
+    tenpc = (10/distpc)*206265
+    barx, bary = axis_to_data.transform([0.05,0.97])
+    plt.hlines(bary, barx, barx+tenpc/cdel, color='k', alpha=0.8, lw=3)
+    midpt = barx+0.5*(tenpc/cdel)
+    ax.annotate('10 pc', (midpt,bary-8), ha='center', va='top', fontsize=11)
     # --- Plot labels
     lon=ax.coords[0]
     lat=ax.coords[1]
@@ -101,7 +106,7 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', distpc=5e4,
             lon.set_axislabel('Right Ascension (J2000)', size=11)
             lat.set_axislabel('Declination (J2000)', size=11)
     if label is not None:
-        ax.text(0.95,0.97,label,ha='right',va='top',fontsize=13,
+        ax.text(0.97,0.97,label,ha='right',va='top',fontsize=13,
             transform=ax.transAxes)
     # --- Plot colorbar
     divider = make_axes_locatable(ax)

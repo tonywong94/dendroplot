@@ -120,6 +120,8 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         np.zeros(len(srclist)) for _ in range(12)]
     print("Calculating property errors...")
     for j, clust in enumerate(srclist):
+        if j % 10 == 1:
+            print("Calculating property errors for structure",j)
         asgn = np.zeros(cube.shape)
         asgn[d[clust].get_mask(shape = asgn.shape)] = 1
         sindices = np.where(asgn == 1)
@@ -164,8 +166,12 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
             if anchd['NAXIS'] == 2:
                 collapsedmask = np.amax(asgn, axis = 0)
                 collapsedmask[collapsedmask==0] = np.nan
+                ngood = np.nansum(collapsedmask)
+                #print('Pixels in region:',ngood)
                 ancmean[j] = np.nanmean(ancdata*collapsedmask)
                 ancrms[j] = np.sqrt(np.nanmean((ancdata*collapsedmask)**2)-ancmean[j]**2)
+                ancrms[j] /= np.sqrt(ngood/ppbeam)
+                #print('Mean and uncertaintity:',ancmean[j],ancrms[j])
             else:
                 ancmean[j] = np.nanmean(ancdata*asgn)
                 ancrms[j] = np.sqrt(np.nanmean((ancdata*asgn)**2)-ancmean[j]**2)
@@ -239,6 +245,6 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         if anclabel is None:
             anclabel = ancimg.replace('.','_').split('_')[1]
         ptab[anclabel] = Column(ancmean, unit=anchd['BUNIT'])
-        ancferr = indfac * ancrms / ancmean
+        ancferr = ancrms / ancmean
         ptab['e_'+anclabel] = Column(ancferr)
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)

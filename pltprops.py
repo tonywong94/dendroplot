@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import csv
+#import csv
 import numpy as np
+from numpy.random import randint
 from scipy import stats
 from scipy import odr
 import os
@@ -13,6 +14,8 @@ from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from kapteyn import kmpfit
+params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
+plt.rcParams.update(params)
 
 # General Scatter Plot
 def sctplot(xdata, ydata, zdata=None, col='g', mark='o', mec='k', 
@@ -165,13 +168,25 @@ def residuals(p, data):
 # -------------------------------------------------------------------------------
 
 # Perform linear fitting using kmpfit's effective variance method
-def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95):
-    # Initial guess from simple linear regression
+# a: regression intercept
+# b: regression slope
+# c: fitted intercept
+# d: fitted slope
+def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95,
+                nbootstrap=0, zorder=1, doline=True, parprint=True):
+    # --- Initial guess from simple linear regression
     sorted=np.argsort(x)
-    b, a, rval, pval, std_err = stats.linregress(x[sorted], y[sorted])
-    print("\nLineregress parameters: ", a, b)
-    # Run the fit
-    fitobj = kmpfit.Fitter(residuals=residuals, data=(x, y, xerr, yerr))
+    xfit = x[sorted]
+    yfit = y[sorted]
+    if xerr is not None:
+        xerrfit = xerr[sorted]
+    if yerr is not None:
+        yerrfit = yerr[sorted]
+    b, a, rval, pval, std_err = stats.linregress(xfit, yfit)
+    print("\nLineregress parameters: {:.2f} + x*({:.2f}+/-{:.2f})".format(
+           a, b, std_err))
+    # --- kmpfit approach
+    fitobj = kmpfit.Fitter(residuals=residuals, data=(xfit, yfit, xerrfit, yerrfit))
     fitobj.fit(params0=[a, b])
     print("\n======== Results kmpfit with effective variance =========")
     print("Fitted parameters:      ", fitobj.params)
@@ -181,32 +196,65 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95)
     print("Reduced Chi^2:          ", fitobj.rchi2_min)
     print("Status Message:", fitobj.message)
     c, d = fitobj.params
-    e, f = fitobj.stderr
-    # Alternative method using Orthogonal Distance Regression
+    c_err, d_err = fitobj.stderr
+    yscat = np.std(yfit-model([c, d], xfit))
+    # --- Run the bootstrap if requested
+    if nbootstrap > 0:
+        slopes = []
+        offsets = []
+        for i in range(nbootstrap):
+            indx = randint(0, len(x), len(x))
+            # indx is an array of random indices. Use this array to create a new one.
+            xfit[:] = x[indx]
+            yfit[:] = y[indx]
+            if xerr is not None:
+                xerrfit[:] = xerr[indx]
+            if yerr is not None:
+                yerrfit[:] = yerr[indx]
+            # Only do a regression if there are at least two different
+            # data points in the pseudo sample
+            ok = (xfit != xfit[0]).any()
+            if (not ok):
+                print("All elements are the same. Invalid sample.")
+                print(xfit, yfit)
+            else:
+                fitobj.fit(params0=[a, b])
+                offs, slope = fitobj.params
+                slopes.append(slope)
+                offsets.append(offs)
+        slopes = np.array(slopes) - d
+        offsets = np.array(offsets) - c
+        d_err = slopes.std()
+        c_err = offsets.std()
+        print("Bootstrap errors:      ", c_err, d_err)
+    # --- scipy ODR approach
     linear = odr.Model(model)
     mydata = odr.RealData(x, y, sx=xerr, sy=yerr)
     myodr = odr.ODR(mydata, linear, beta0=[a,b])
     myoutput = myodr.run()
+    print("\n======== Results from scipy.odr =========")
     myoutput.pprint()
     # Plot the results
-    xmod = np.linspace(xrange[0],xrange[1],50)
-    #ymod0 = model([a, b], xmod)
-    ymod = model([c, d], xmod)
     axes = plt.gca()
-    axes.plot(xmod, ymod, linestyle='--', color=color, zorder=1)
-    dfdp = [1, xmod]
-    ydummy, upperband, lowerband = fitobj.confidence_band(xmod, dfdp, prob, model)
-    verts = list(zip(xmod, lowerband)) + list(zip(xmod[::-1], upperband[::-1]))
-    poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3, 
-        label="{:g}% conf.".format(prob*100))
-    axes.add_patch(poly)
-    # The slope
-    axes.text(0.03,0.95,'a = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
-        f,size=10,transform=axes.transAxes)
-    # The intercept
-    axes.text(0.03,0.90,'b = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
-        e,size=10,transform=axes.transAxes)
-    return
+    if doline == True:
+        xmod = np.linspace(xrange[0],xrange[1],50)
+        ymod = model([c, d], xmod)
+        axes.plot(xmod, ymod, linestyle='--', color=color, zorder=zorder)
+        dfdp = [1, xmod]
+        ydummy, upperband, lowerband = fitobj.confidence_band(xmod,dfdp,prob,model)
+        verts = list(zip(xmod, lowerband)) + list(zip(xmod[::-1], upperband[::-1]))
+        poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3) 
+#            label="{:g}% conf.".format(prob*100))
+        axes.add_patch(poly)
+    # Overlay the results
+    if parprint == True:
+        axes.text(0.03,0.95,'$a_1$ = $%4.2f$ ' % d + u'\u00B1' + ' $%4.2f$' % 
+            d_err,size=10,transform=axes.transAxes)
+        axes.text(0.03,0.90,'$a_0$ = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
+            c_err,size=10,transform=axes.transAxes)
+#         axes.text(0.03,0.85,r'$\epsilon$ = $%4.2f$ ' % yscat,
+#             size=10,transform=axes.transAxes)
+    return d, d_err, c, c_err, fitobj.rchi2_min, yscat
 
 # -------------------------------------------------------------------------------
 
@@ -255,10 +303,12 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
     idc=[[],[],[],[]]
     for i, typ in enumerate(['trunks', 'branches', 'leaves', 'clusters']):
         try:
-            with open(label+'_'+typ+'.txt', 'r') as f:
-                reader=csv.reader(f, delimiter=' ')
-                for row in reader:
-                    idc[i].append(int(row[0]))
+            col1 = np.loadtxt(label+'_'+typ+'.txt', usecols=0, dtype=int)
+            idc[i] = list(np.atleast_1d(col1))
+#             with open(label+'_'+typ+'.txt', 'r') as f:
+#                 reader=csv.reader(f, delimiter=' ')
+#                 for row in reader:
+#                     idc[i].append(int(row[0]))
         except:
             print('{} not found'.format(label+'_'+typ+'.txt'))
 #         with open(label+'_'+typ+'.txt', 'r') as f:
@@ -342,6 +392,11 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
         plt.close()
 
     # Main set of scatter plots, as requested by user
+    tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('a', 'f4'), 
+                    ('a_err', 'f4'), ('b', 'f4'), ('b_err', 'f4'), 
+                    ('chi2red', 'f4'), ('eps', 'f4')])
+    for col in ['a', 'a_err', 'b', 'b_err', 'chi2red', 'eps']:
+        tab[col].format = '.2f'
     for i in range(len(xplot)):
         if 'e_'+xplot[i] in pcat.keys() and 'e_'+yplot[i] in pcat.keys():
             x, y, xerr, yerr = [pcat[xplot[i]], pcat[yplot[i]], pcat['e_'+xplot[i]], 
@@ -397,9 +452,17 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
         # Plot the best-fitting line and confidence interval
         if pltname[i] not in ['bnd', 'bndlte']:
             if len(unshade) > 2:
-                linefitting( np.log10(x[unshade]), np.log10(y[unshade]), 
-                    xerr=xerr[unshade]/np.log(10), yerr=yerr[unshade]/np.log(10), 
-                    xrange=xlims[i], color='b' )
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
+                    np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
+                    yerr=yerr[unshade]/np.log(10), xrange=xlims[i], color='b',
+                    doline=True, parprint=False, prob=.997)
+                tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
+            if pltname[i] == 'rdv':
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
+                    np.log10(y[postive]), xerr=xerr[postive]/np.log(10), 
+                    yerr=yerr[postive]/np.log(10), xrange=xlims[i], color='b',
+                    doline=False, parprint=False)
+                tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
         # Make the labels and draw the gray shaded boxes
         std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
@@ -455,9 +518,9 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
             # Plot best-fitting line to clusters only
             if pltname[i] not in ['bnd', 'bndlte']:
                 if len(unshade2) > 2:
-                    linefitting( np.log10(x[unshade2]), np.log10(y[unshade2]), 
-                        xerr=xerr[unshade2]/np.log(10), yerr=yerr[unshade2]/np.log(10), 
-                        xrange=xlims[i], color='b' )
+                    a1, a1_e, a0, a0_e, eps, chi2 = linefitting( np.log10(x[unshade2]), 
+                        np.log10(y[unshade2]), xerr=xerr[unshade2]/np.log(10), 
+                        yerr=yerr[unshade2]/np.log(10), xrange=xlims[i], color='b' )
             for j, tno in enumerate(idsel[3]):
                 clsel = cld[j][:]
                 clsel = [val for val in cld[j] if val in postive.tolist()]
@@ -469,5 +532,6 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
                 plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
             plt.savefig('plots/'+label+'_'+pltname[i]+'_clusters.pdf', bbox_inches='tight')
             plt.close()
+    tab.write(label+'_lfit.tex', overwrite=True)
     
     return
