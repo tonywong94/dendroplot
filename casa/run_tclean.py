@@ -16,7 +16,7 @@ usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
 def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None, 
         startmodel=None, weighting=None, deconvolver=None, usemask=None, mask=None,
         pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
-        threshold=0.05, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
+        nsigma=1, fastnoise=False, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
         maskresolution=2., maskthreshold=4., sidelobethreshold=3.,
         noisethreshold=4., lownoisethreshold=2., smoothfactor=2.,
         cutthreshold=0.1, minbeamfrac=0.5):
@@ -141,7 +141,8 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
            lownoisethreshold=lownoisethreshold,
            smoothfactor=smoothfactor,
            cutthreshold=cutthreshold,
-           threshold=threshold,
+           nsigma=nsigma,
+           fastnoise=fastnoise,
            minbeamfrac=minbeamfrac,
            pbmask=pbmask,
            pbcor=True,
@@ -157,15 +158,21 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
     # Export to FITS
     exportfits(imagename=thisname+'.image',fitsimage=thisname+'.image.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.image.fits')
     exportfits(imagename=thisname+'.pb',fitsimage=thisname+'.pb.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.pb.fits')
     exportfits(imagename=thisname+'.image.pbcor',fitsimage=thisname+'.pbcor.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.pbcor.fits')
     exportfits(imagename=thisname+'.residual',fitsimage=thisname+'.residual.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.residual.fits')
     exportfits(imagename=thisname+'.convmodel',fitsimage=thisname+'.convmodel.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.convmodel.fits')
     exportfits(imagename=thisname+'.mask',fitsimage=thisname+'.mask.fits',
         dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+thisname+'.mask.fits')
 
     return
