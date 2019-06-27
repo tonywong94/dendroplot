@@ -17,8 +17,8 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
         startmodel=None, weighting=None, deconvolver=None, usemask=None, mask=None,
         pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
         nsigma=1, fastnoise=False, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
-        maskthreshold=4., sidelobethreshold=3., noisethreshold=4., 
-        lownoisethreshold=2., smoothfactor=2., cutthreshold=0.1, minbeamfrac=0.5):
+        sidelobethreshold=3., noisethreshold=4., lownoisethreshold=2., 
+        smoothfactor=2., cutthreshold=0.1, minbeamfrac=0.5):
 
     # Determine output prefix
     if name is None:
@@ -133,7 +133,6 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
            deconvolver=deconvolver,
            usemask=usemask,
            mask=mask,
-           maskthreshold=maskthreshold,
            sidelobethreshold=sidelobethreshold,
            noisethreshold=noisethreshold,
            lownoisethreshold=lownoisethreshold,
