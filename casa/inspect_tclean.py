@@ -186,8 +186,8 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
             tclnpar['weighting']), transform=ax6.transAxes)
         ax6.text(xleft,ytop-7*ystep,'niter = {0}'.format(
             tclnpar['niter']), transform=ax6.transAxes)
-        ax6.text(xleft,ytop-8*ystep,'threshold = {0}'.format(
-            tclnpar['threshold']), transform=ax6.transAxes)
+        ax6.text(xleft,ytop-8*ystep,'nsigma = {0}'.format(
+            tclnpar['nsigma']), transform=ax6.transAxes)
         ax6.text(xleft,ytop-9*ystep,'pblimit = {0}'.format(
             tclnpar['pblimit']), transform=ax6.transAxes)
         if 'startmodel' in tclnpar:
