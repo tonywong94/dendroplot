@@ -19,7 +19,9 @@ def mergemask(name='GMC104', line='12CO', file7m=None, file12m=None, cropping=0.
         os.system('rm -rf '+ crop)
         immath(imagename=[merge,maskpb],expr='iif(IM1>%4.2f,IM0,0.)'%cropping,outfile=crop)
         exportfits(imagename=crop,fitsimage=crop+'.fits',dropdeg=True,velocity=True,overwrite=True)
+	os.system('gzip -f '+crop+'.fits')
 
     exportfits(imagename=merge,fitsimage=merge+'.fits',dropdeg=True,velocity=True,overwrite=True)
+    os.system('gzip -f '+merge+'.fits')
     os.system('rm -rf '+ regrid)
 
