@@ -535,3 +535,156 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
     tab.write(label+'_lfit.tex', overwrite=True)
     
     return
+
+# -------------------------------------------------------------------------------
+# Hybrid plot with trunks and branches from 12CO and leaves from 13CO.
+
+def plthybrid(cld, distpc=5e4, dvkms=0.2, beam=2,
+            xplot=['rad_pc', 'vrms_k', 'area_pc2'],
+            yplot=['vrms_k', 'mlumco',  'mlumco'],
+            xlims=[[-1.5,1],   [-2,2],    [-1,3]],
+            ylims=[[-2,1.5], [-1.5,4.5],  [-2,4]],
+            pltname=['rdv', 'dvflux', 'areaflux']):
+
+    deltav  = dvkms  * u.km / u.s
+    avgbeam = beam   * u.arcsec
+    dist    = distpc * u.pc
+    # Min radius is FWHM beam converted to rms size then scaled by 1.91
+    rmstorad = 1.91
+    radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
+        u.pc, equivalencies=u.dimensionless_angles())
+    # Min area is 1 Gaussian beam
+    arealim = np.pi/(4*np.log(2)) * ((avgbeam * dist).to(
+        u.pc, equivalencies=u.dimensionless_angles()))**2
+    # Min line width is channel width (~FWHM) divided by 2.35
+    dvlim = deltav.value/np.sqrt(8*np.log(2))
+    shade = {'rad_pc': radlim.value, 'vrms_k': dvlim, 'area_pc2': arealim.value}
+
+    # checks/creates directory to place plots
+    if os.path.isdir('plots') == 0:
+        os.makedirs('plots')
+
+    params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
+    plt.rcParams.update(params)
+
+    if os.path.isfile(label+'_12_physprop_add.txt'):
+        pcat12 = Table.read(cld+'_12_physprop_add.txt', format='ascii.ecsv')
+    else:
+        pcat12 = Table.read(cld+'_12_physprop.txt', format='ascii.ecsv')
+    newcol = Column(pcat12['area_pc2']*0., name='e_area_pc2')
+    newcol.unit = 'pc2'
+    pcat12.add_column(newcol)
+    if os.path.isfile(label+'_13_physprop_add.txt'):
+        pcat13 = Table.read(cld+'_13_physprop_add.txt', format='ascii.ecsv')
+    else:
+        pcat13 = Table.read(cld+'_13_physprop.txt', format='ascii.ecsv')
+    newcol = Column(pcat13['area_pc2']*0., name='e_area_pc2')
+    newcol.unit = 'pc2'
+    pcat13.add_column(newcol)
+
+    # Get the indices of trunks, branches, leaves, and clusters.
+    # idc[0] is a list of trunk indices
+    # idc[1] is a list of branch indices
+    # idc[2] is a list of leaf indices
+    idc=[[],[],[]]
+    for i, typ in enumerate(['trunks', 'branches']):
+		col1 = np.loadtxt(cld+'_12_'+typ+'.txt', usecols=0, dtype=int)
+		idc[i] = list(np.atleast_1d(col1))
+	col1 = np.loadtxt(cld+'_13_leaves.txt', usecols=0, dtype=int)
+	idc[2] = list(np.atleast_1d(col1))
+
+    # Main set of scatter plots, as requested by user
+    tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('a', 'f4'), 
+                    ('a_err', 'f4'), ('b', 'f4'), ('b_err', 'f4'), 
+                    ('chi2red', 'f4'), ('eps', 'f4')])
+    for col in ['a', 'a_err', 'b', 'b_err', 'chi2red', 'eps']:
+        tab[col].format = '.2f'
+    for i in range(len(xplot)):
+    	x = np.concatenate((pcat12[xplot[i]][idc[0]],
+    						pcat12[xplot[i]][idc[1]],
+    					    pcat13[xplot[i]][idc[2]]))
+    	y = np.concatenate((pcat12[yplot[i]][idc[0]],
+    						pcat12[yplot[i]][idc[1]],
+    					    pcat13[yplot[i]][idc[2]]))
+        if 'e_'+xplot[i] in pcat12.keys() and 'e_'+xplot[i] in pcat13.keys():
+        	xerr = np.concatenate((pcat12['e_'+xplot[i]][idc[0]],
+        						   pcat12['e_'+xplot[i]][idc[1]],
+        						   pcat13['e_'+xplot[i]][idc[2]]))
+        else:
+            xerr = x*0 + 0.1
+        if 'e_'+yplot[i] in pcat12.keys() and 'e_'+yplot[i] in pcat13.keys():
+        	yerr = np.concatenate((pcat12['e_'+yplot[i]][idc[0]],
+        						   pcat12['e_'+yplot[i]][idc[1]],
+        						   pcat13['e_'+yplot[i]][idc[2]]))
+        else:
+            yerr = y*0 + 0.1
+        # Must be positive to take logarithm
+        postive = np.intersect1d(np.where(x>0)[0], np.where(y>0)[0])
+        # Restrict indices of subsets to positive values
+        idsel = idc[:]
+        for j in range(3):
+            idsel[j] = [val for val in idc[j] if val in postive.tolist()]
+        # Exclude unresolved points from line fitting
+        xmin = ymin = 0
+        if xplot[i] in shade.keys():
+            print('Excluding points from {0} below {1}'.format(xplot[i],shade[xplot[i]]))
+            if shade[xplot[i]] > 0:
+                xmin = shade[xplot[i]]
+        if yplot[i] in shade.keys():
+            print('Excluding points from {0} below {1}'.format(yplot[i],shade[yplot[i]]))
+            if shade[yplot[i]] > 0:
+                ymin = shade[yplot[i]]
+        unshade = np.intersect1d(np.where(x>xmin)[0], np.where(y>ymin)[0])
+        #
+        # --- Plot trunks, branches, leaves
+        fig, axes = plt.subplots()
+        if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+            axes.set_aspect(0.6)
+        else:
+            axes.set_aspect('equal')
+        # Get plot label
+#         reg = label.split('_')[0].upper()
+#         if reg == '30DOR':
+#             reg = '30Dor'
+#         line = label.split('_')[1]
+        plt.plot([], [], ' ', label=cld)
+        # Plot the error bars of all points in gray
+        plt.errorbar( np.log10(x[postive]), np.log10(y[postive]), 
+            xerr=xerr[postive]/np.log(10), yerr=yerr[postive]/np.log(10), 
+            ecolor='dimgray', capsize=0, 
+            zorder=1, marker=None, ls='None', lw=1, label=None)
+        # Plot the trunks as red pentagons
+        sctplot ( np.log10(pcat12[xplot[i]][idsel[0]]), 
+        		  np.log10(pcat12[yplot[i]][idsel[0]]), 
+        		  col='brown', mark='p', mec='k', msize=80, zorder=4, label='trunks' )
+        # Plot the branches as white triangles
+        sctplot ( np.log10(pcat12[xplot[i]][idsel[1]]), 
+        		  np.log10(pcat12[yplot[i]][idsel[1]]), 
+        		  col='w', mark='v', mec='k', msize=17, zorder=2, label='branches' )
+        # Plot the leaves as green circles
+        sctplot ( np.log10(pcat13[xplot[i]][idsel[2]]), 
+        		  np.log10(pcat13[yplot[i]][idsel[2]]), 
+        		  col='green', mark='o', mec='k', msize=20, zorder=3, label='leaves' )
+        # Plot the best-fitting line and confidence interval
+        if pltname[i] not in ['bnd', 'bndlte']:
+            if len(unshade) > 2:
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
+                    np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
+                    yerr=yerr[unshade]/np.log(10), xrange=xlims[i], color='b',
+                    doline=True, parprint=False, prob=.997)
+                tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
+            if pltname[i] == 'rdv':
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
+                    np.log10(y[postive]), xerr=xerr[postive]/np.log(10), 
+                    yerr=yerr[postive]/np.log(10), xrange=xlims[i], color='b',
+                    doline=False, parprint=False)
+                tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
+        # Make the labels and draw the gray shaded boxes
+        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
+        plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
+        plt.savefig('plots/'+cld+'_hyb_'+pltname[i]+'_full.pdf', bbox_inches='tight')
+        plt.close()
+
+    tab.write(cld+'_hyb_lfit.tex', overwrite=True)
+    
+    return
