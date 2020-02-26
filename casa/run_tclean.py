@@ -15,6 +15,7 @@ usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
 
 def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None, 
         startmodel=None, weighting=None, deconvolver=None, usemask=None, mask=None,
+        imsize=None, cellsize=None, vstart=None, nchan=None, phasecenter=None,
         pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
         nsigma=1., fastnoise=False, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
         sidelobethreshold=3., noisethreshold=4., lownoisethreshold=2., 
@@ -75,38 +76,58 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
         raise ValueError("Invalid usemask. Expected one of: %s" % mask_types)
 
     # Determine cloud-specific imaging parameters
-    imsize1 = { 'GMC1': [1000,1000], 'GMC104': [800, 800], 
-                'A439': [800, 800], 'N59C': [800, 800],
-                'N113': [500, 500]  }       #was [500, 500]
-    imsize2 = { 'GMC1': [250, 250], 'GMC104': [250, 250], 
-                'A439': [250, 250], 'N59C': [250, 250], 
-                'N113': [128, 128], '30Dor1': [256, 256] }
+    imsize_te = { 'GMC1': [1000,1000], 
+                  'GMC104': [800, 800], 
+                  'A439': [800, 800], 
+                  'N59C': [800, 800],
+                  'N113': [500, 500] }
+    imsize_ac = { 'GMC1': [250, 250], 
+                  'GMC104': [250, 250], 
+                  'A439': [250, 250], 
+                  'N59C': [250, 250], 
+                  'N113': [128, 128], 
+                  '30Dor1': [256, 256] }
 
-    if arrcode == '7m':
-        thissize = imsize2[name]
-        thiscell = '2arcsec'
-    else:
-        thissize = imsize1[name]
-        thiscell = '0.5arcsec'
-    if level == '21':
+    if imsize is None:
         if arrcode == '7m':
-            thiscell = '1arcsec'
+            thissize = imsize_ac[name]
         else:
-            thiscell = '0.2arcsec'
+            thissize = imsize_te[name]
 
-    nchan = { 'GMC1': 100, 'GMC104': 100, 
-              'A439': 150, 'N59C': 250, 
-              'N113': 150, '30Dor': 500 }                #was 'N59C': 200
-    vstart = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
-               'A439': '210km/s', 'N59C': '263km/s',
-               'N113': '220km/s', '30Dor1': '230km/s', '30Dor': '230km/s' }   #was 'N59C': '266km/s'
-    phasecenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
+    if cellsize is None:
+        if level == '10':
+            if arrcode == '7m':
+                thiscell = '2arcsec'
+            else:
+                thiscell = '0.5arcsec'
+        else:
+            if arrcode == '7m':
+                thiscell = '1arcsec'
+            else:
+                thiscell = '0.2arcsec'
+
+    defvsta = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
+                'A439': '210km/s', 'N59C': '263km/s',
+                'N113': '220km/s', '30Dor': '230km/s' } 
+    if vstart is None:
+        vstart = defvsta[name]
+
+    defchan = { 'GMC1': 100, 'GMC104': 100, 
+                'A439': 150, 'N59C': 250, 
+                'N113': 150, '30Dor': 500 } 
+    if nchan is None:
+        nchan = defchan[name]
+
+    defcenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
                     'GMC104': 'J2000 05h21m05.5s -70d13m36s',
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
                     'N59C': 'J2000 05h35m18.8s -67d36m12s',
                     'N113': 'J2000 05h13m21.0s -69d22m21s',
                     '30Dor1': 'J2000 05h38m31.3s -69d02m09s',
                     '30Dor': 'J2000 05h38m42.5s -69d04m35s' }
+    if phasecenter is None:
+        phasecenter = defcenter[name]
+
     ### Make the image
     #os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
     tclean(vis=thisvis,
@@ -118,11 +139,11 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
            cell=thiscell,
            spw=spw,
            weighting=weighting,
-           phasecenter=phasecenter[name],
+           phasecenter=phasecenter,
            specmode='cube',
            width=width,
-           start=vstart[name],
-           nchan=nchan[name],
+           start=vstart,
+           nchan=nchan,
            restoringbeam='common',
            restfreq=restfreq[line+'('+level+')'],
            outframe=outframe,
