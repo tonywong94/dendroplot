@@ -90,21 +90,21 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
 
     if imsize is None:
         if arrcode == '7m':
-            thissize = imsize_ac[name]
+            imsize = imsize_ac[name]
         else:
-            thissize = imsize_te[name]
+            imsize = imsize_te[name]
 
     if cellsize is None:
         if level == '10':
             if arrcode == '7m':
-                thiscell = '2arcsec'
+                cellsize = '2arcsec'
             else:
-                thiscell = '0.5arcsec'
+                cellsize = '0.5arcsec'
         else:
             if arrcode == '7m':
-                thiscell = '1arcsec'
+                cellsize = '1arcsec'
             else:
-                thiscell = '0.2arcsec'
+                cellsize = '0.2arcsec'
 
     defvsta = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
                 'A439': '210km/s', 'N59C': '263km/s',
@@ -135,8 +135,8 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
            startmodel=startmodel,
            gridder='mosaic',
            pblimit=pblimit,
-           imsize=thissize,
-           cell=thiscell,
+           imsize=imsize,
+           cell=cellsize,
            spw=spw,
            weighting=weighting,
            phasecenter=phasecenter,
