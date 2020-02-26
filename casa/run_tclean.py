@@ -85,8 +85,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
                   'GMC104': [250, 250], 
                   'A439': [250, 250], 
                   'N59C': [250, 250], 
-                  'N113': [128, 128], 
-                  '30Dor1': [256, 256] }
+                  'N113': [128, 128] }
 
     if imsize is None:
         if arrcode == '7m':
@@ -119,12 +118,11 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
         nchan = defchan[name]
 
     defcenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
-                    'GMC104': 'J2000 05h21m05.5s -70d13m36s',
-                    'A439': 'J2000 05h47m26.1s -69d52m46s',
-                    'N59C': 'J2000 05h35m18.8s -67d36m12s',
-                    'N113': 'J2000 05h13m21.0s -69d22m21s',
-                    '30Dor1': 'J2000 05h38m31.3s -69d02m09s',
-                    '30Dor': 'J2000 05h38m42.5s -69d04m35s' }
+                  'GMC104': 'J2000 05h21m05.5s -70d13m36s',
+                  'A439': 'J2000 05h47m26.1s -69d52m46s',
+                  'N59C': 'J2000 05h35m18.8s -67d36m12s',
+                  'N113': 'J2000 05h13m21.0s -69d22m21s',
+                  '30Dor': 'J2000 05h38m42.5s -69d04m35s' }
     if phasecenter is None:
         phasecenter = defcenter[name]
 
