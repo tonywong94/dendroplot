@@ -80,7 +80,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
                 'N113': [500, 500]  }       #was [500, 500]
     imsize2 = { 'GMC1': [250, 250], 'GMC104': [250, 250], 
                 'A439': [250, 250], 'N59C': [250, 250], 
-                'N113': [128, 128], '30Dor': [256, 256] }
+                'N113': [128, 128], '30Dor1': [256, 256] }
 
     if arrcode == '7m':
         thissize = imsize2[name]
@@ -88,7 +88,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
     else:
         thissize = imsize1[name]
         thiscell = '0.5arcsec'
-    if name == 'N113' and level == '21':
+    if level == '21':
         if arrcode == '7m':
             thiscell = '1arcsec'
         else:
@@ -99,12 +99,13 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
               'N113': 150, '30Dor': 500 }                #was 'N59C': 200
     vstart = { 'GMC1': '230km/s', 'GMC104': '216km/s', 
                'A439': '210km/s', 'N59C': '263km/s',
-               'N113': '220km/s', '30Dor': '230km/s' }   #was 'N59C': '266km/s'
+               'N113': '220km/s', '30Dor1': '230km/s', '30Dor': '230km/s' }   #was 'N59C': '266km/s'
     phasecenter = { 'GMC1': 'J2000 04h47m30.8s -69d10m32s',
                     'GMC104': 'J2000 05h21m05.5s -70d13m36s',
                     'A439': 'J2000 05h47m26.1s -69d52m46s',
                     'N59C': 'J2000 05h35m18.8s -67d36m12s',
                     'N113': 'J2000 05h13m21.0s -69d22m21s',
+                    '30Dor1': 'J2000 05h38m31.3s -69d02m09s',
                     '30Dor': 'J2000 05h38m42.5s -69d04m35s' }
     ### Make the image
     #os.system('rm -rf '+thisname+'.* ' +thisname+'_*')
