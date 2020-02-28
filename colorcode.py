@@ -49,7 +49,19 @@ def get_limits(vmin=None, vmax=None, datavals=None, i=0):
     else:
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
-    return v0, v1
+    # Choose the ticks
+    dt = np.floor((v1-v0)/5.)
+    if dt == 0:
+        dt = np.floor(2*(v1-v0))/10.
+    tick0 = dt*np.ceil(v0/dt)
+    tick1 = dt*np.ceil(v1/dt)
+    ticks = np.arange(tick0, tick1, dt)
+    if dt < 1:
+        ticklab = ["%.1f" % val for val in ticks]
+    else:
+        ticklab = ["%d" % val for val in ticks]
+    print('Ticks:', ticklab)
+    return v0, v1, ticks, ticklab
 
 #%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
 # Image structures color-coded by properties
@@ -70,11 +82,10 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
         if 'ylims' in kwargs:
             ax.set_ylim(kwargs['ylims'])
 
-        plt.tick_params(axis='both', which='both', bottom='off', top='off', 
-            labelbottom='off', right='off', left='off', labelleft='off',
-            labeltop='off')
+        plt.tick_params(axis='both', which='both', bottom=False, top=False, 
+            left=False, labelleft=True, labeltop=True)
         name = scale_values(cat=subcat, type=type, cubhd=cubhd)
-        v0, v1 = get_limits(vmin=vmin, vmax=vmax, datavals=subcat[type], i=i)
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=subcat[type], i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
         for i, c in enumerate(srclist):
@@ -87,8 +98,9 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
              orientation='vertical', norm=mpl.colors.Normalize(vmin=v0, vmax=v1))
         cbar.ax.tick_params(labelsize=9)
-        cbar.ax.set_yticklabels(cbar.ax.get_yticklabels(), rotation=90)
-        cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=10)
+        cbar.set_ticks(ticks)
+        cbar.ax.set_yticklabels(tlbl, rotation=90, va='center')
+        cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=15)
         plt.savefig(prefix+'_'+type.replace("_","")+'.pdf', 
             bbox_inches='tight')
         plt.close()
@@ -111,7 +123,7 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         ax.set_yscale('log')
         p = dendrogram.plotter()
         name = scale_values(cat=cat, type=type, cubhd=cubhd)
-        v0, v1 = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type], i=i)
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type], i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
         for st in dendrogram.all_structures:
@@ -122,8 +134,9 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
              orientation='vertical', norm=mpl.colors.Normalize(vmin=v0, vmax=v1))
         cbar.ax.tick_params(labelsize=9)
-        cbar.ax.set_yticklabels(cbar.ax.get_yticklabels(), rotation=90)
-        cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=10)
+        cbar.set_ticks(ticks)
+        cbar.ax.set_yticklabels(tlbl, rotation=90, va='center')
+        cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=15)
         if label == 'pcc_12':
             ax.annotate('N', xy=(63, 2.5), xytext=(40, 60),
                 arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,

@@ -2,14 +2,12 @@
 
 #rootdir = '/Volumes/FlexDrive/repository/' 
 rootdir = '/Volumes/Scratch3/tonywong/repository/' 
-import sys
-repodir = rootdir+'lmc-alma-analysis/'
-from pltprops import linefitting
 
+from .pltprops import linefitting
+from scipy.stats import binned_statistic, spearmanr
 import numpy as np
 import os
 import re
-import csv
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib import ticker
@@ -17,20 +15,19 @@ from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.colors import Normalize, LogNorm
-from scipy import stats
-#from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 # General Scatter Plot
-def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', mark='o', mec='face', 
-           zorder=-5, msize=6, linfit=None, label=None, leaves=False, **kwargs):
+def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', 
+              mark='o', mec='face', zorder=-5, msize=6, linfit=None, 
+              label=None, leaves=False, **kwargs):
     cat = Table.read(ecsvfile, format='ascii.ecsv')
     goodidx = (cat[xaxis]>0) & (cat[yaxis]>0)
     if zaxis is not None:
         goodidx = goodidx & (~np.isnan(cat[zaxis]))
-    # Uncomment this to exclude unresolved structures from fitting
-#     if xaxis == 'rad_pc' and yaxis == 'vrms_k':
-#         goodidx = goodidx & (cat[xaxis]>shade[xaxis]) & (cat[yaxis]>shade[yaxis])
+    # Uncomment these 2 lines to exclude unresolved structures from fitting
+    if xaxis == 'rad_pc' and yaxis == 'vrms_k':
+        goodidx = goodidx & (cat[xaxis]>shade[xaxis]) & (cat[yaxis]>shade[yaxis])
     if leaves:
         leavelist=re.sub('physprop\w*', 'leaves', ecsvfile)
         idcs = np.loadtxt(leavelist, dtype=int)
@@ -38,13 +35,11 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', mark='o',
     xdata = np.log10(cat[xaxis][goodidx])
     ydata = np.log10(cat[yaxis][goodidx])
     if 'e_'+xaxis in cat.keys() and xaxis != '8um_avg':
-#    if 'e_'+xaxis in cat.keys():
         x_err = cat['e_'+xaxis][goodidx]
     else:
         print('Using uniform error of 0.1 for x axis')
         x_err = np.zeros_like(xdata) + 0.1
     if 'e_'+yaxis in cat.keys() and not yaxis.startswith('sig'):
-#    if 'e_'+yaxis in cat.keys():
         y_err = cat['e_'+yaxis][goodidx]
     else:
         print('Using uniform error of 0.1 for y axis')
@@ -54,7 +49,6 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', mark='o',
     print('Plotting {} vs {} from file {}'.format(yaxis,xaxis,ecsvfile))
     # Specified colors
     if zaxis is None:
-        #print('col is',np.reshape(col,(1,-1)),'mark is',mark)
         axes.scatter(xdata, ydata, marker=mark, c=np.reshape(col,(1,-1)), edgecolors=mec, 
             zorder=zorder, s=msize, linewidths=0.1, label=label, **kwargs)
     else:
@@ -87,7 +81,8 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', mark='o',
 
 # Main program
 def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
-            indir=None, leaves=False, cmap_name='gist_rainbow', mec='white',
+            indir=None, leaves=False, binned=False,
+            cmap_name='gist_rainbow', mec='white',
             xplot=['rad_pc'],
             yplot=['vrms_k'],
             xlims=[[-1,1.5]],
@@ -119,9 +114,9 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
     radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
         u.pc, equivalencies=u.dimensionless_angles())
 
-    tab = Table(dtype=[('line', 'S2'), ('xplot', 'S10'), ('yplot', 'S10'), ('a1', 'f4'), 
-                    ('a1_err', 'f4'), ('a0', 'f4'), ('a0_err', 'f4'), 
-                    ('chi2red', 'f4'), ('eps', 'f4')])
+    tab = Table(dtype=[('line', 'S2'), ('xplot', 'S10'), ('yplot', 'S10'), 
+                    ('a1', 'f4'), ('a1_err', 'f4'), ('a0', 'f4'), 
+                    ('a0_err', 'f4'), ('chi2red', 'f4'), ('eps', 'f4')])
     for col in ['a1', 'a1_err', 'a0', 'a0_err', 'chi2red', 'eps']:
         tab[col].format = '.2f'
     # Generate plots
@@ -174,16 +169,16 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                     parprint = True
                     axes.plot(xmod, ymod, linestyle='-', color='r', lw=4, alpha=0.5, 
                         zorder=-1)
-                    axes.text((xlims[i][1]-0.05), (ylims[i][1]-0.8), 'S87', 
-                        horizontalalignment='right', color='r', rotation=30)
+                    axes.text((xlims[i][1]-0.05), (xlims[i][1]/2-0.15), 'S87', 
+                        horizontalalignment='right', color='r', rotation=25)
                     if type in ['8um_avg', 'sp8med']:
                         lbltype = '8$\mu$m'
                     elif type in ['sp24med']:
                         lbltype = '24$\mu$m'
                     elif type in ['siglum', 'siglte', 'sigvir', 'comean']:
                         lbltype = '$\Sigma$'
-                    axes.text(0.5, 1.03, r'$^{'+line+'}$CO colored by '+ccode+' '+lbltype, size=13,
-                        ha='center', color='k', transform=axes.transAxes)
+                    axes.text(0.5, 1.03, r'$^{'+line+'}$CO colored by '+ccode+' '+
+                        lbltype, size=13, ha='center', color='k', transform=axes.transAxes)
                 else:
                     parprint = False
                     axes.plot(xmod, ymod, '--', marker=None, color='k')
@@ -191,31 +186,53 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                 if xplot[i].startswith('sig') and yplot[i] == 'sigvir':
                     ymod = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e4/10**xmod)
                     axes.plot(xmod, ymod, linestyle='-', color='g', lw=1)
-                    axes.text(-0.97, 3.5, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
+                    axes.text(-0.9, 2.30, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', 
                         color='g', rotation=-45)
                     ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
                     axes.plot(xmod, ymod2, linestyle='-', color='m', lw=1)
-                    axes.text(-0.97, 2.1, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
+                    axes.text(-0.9, 0.90, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', 
                         color='m', rotation=-45)
-                    axes.text(-0.95, -0.25, 'Virial Eq', color='k', rotation=45)
-                # Fit a line
+                    axes.text(-0.9, -0.6, 'Virial Eq', color='k', rotation=45)
+                # Fit a line to all points
                 sorted=np.argsort(save[:,0])
                 xdata = save[:,0][sorted]
-                #print('xdata is',xdata)
                 ydata = save[:,1][sorted]
-                #print('ydata is',ydata)
-                x_err  = save[:,2][sorted]/np.log(10)
-                #print('x_err is',x_err)
-                y_err  = save[:,3][sorted]/np.log(10)
-                a1, a1_e, a0, a0_e, chi2, eps = linefitting(xdata, ydata, zorder=10,
-                        xerr=x_err, yerr=y_err, xrange=xlims[i], color='b', 
-                        parprint=parprint, prob=0.997)
+                x_err = save[:,2][sorted]/np.log(10)
+                y_err = save[:,3][sorted]/np.log(10)
+                if binned == True:
+                    # Bins are based on data unless plot limits are more constrained
+                    makebin = np.linspace(np.amax([xdata[0],xlims[i][0]]), 
+                                np.amin([xdata[-1],xlims[i][1]]), 10)
+                    mu, edges, asgn = binned_statistic(xdata, ydata, statistic='mean', 
+                                        bins=makebin)
+                    sig, edges, asgn = binned_statistic(xdata, ydata, statistic='std', 
+                                        bins=makebin)
+                    x_bins = edges[:-1] + np.diff(edges)/2
+                    axes.errorbar(x_bins, mu, yerr=sig,
+                                  ls='None', marker='o', markersize=5,
+                                  c="k", ecolor='dimgray', capsize=0, zorder=11)
+#                     polyco, cov = np.polyfit(x_bins, mu, 1, w=1/sig, cov=True)
+#                     a1 = polyco[0]
+#                     a0 = polyco[1]
+#                     a1_e, a0_e = np.sqrt(np.diag(cov))
+#                     xmod = np.linspace(xlims[i][0], xlims[i][1], 10)
+#                     ymod = a1 * xmod + a0
+#                     axes.plot(xmod, ymod, linestyle='--', color='b', zorder=10)
+#                     chi2 = 0
+#                     eps = 0
+#                     a1, a1_e, a0, a0_e, chi2, eps = linefitting(x_bins, mu,
+#                         yerr=sig, xrange=xlims[i], color='b', 
+#                         parprint=parprint, prob=0.997, zorder=10)
+#                 else:
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting(xdata, ydata,
+                    xerr=x_err, yerr=y_err, xrange=xlims[i], color='b', 
+                    parprint=parprint, prob=0.997, zorder=10)
                 if type == 'sp8med':
                     tab.add_row([line, xplot[i], yplot[i], a1, a1_e, a0, a0_e, chi2, eps])
                 # Spearman correlation coefficient
                 if yplot[i].startswith('sig') and (xplot[i] == '8um_avg' 
-                                                or xplot[i].startswith('sig')):
-                    spear, prob = stats.spearmanr(xdata, ydata)
+                                                   or xplot[i].startswith('sig')):
+                    spear, prob = spearmanr(xdata, ydata)
                     if xplot[i].startswith('sig'):
                         axes.text(0.98,0.31,'$^{'+line+'}$CO structures',
                             size=12, color='k', ha='right', transform=axes.transAxes)
@@ -239,24 +256,27 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                         format=formatter, ticks=[1,2,5,10,20,50,100,200,500,1000])
                 cbar.ax.tick_params(labelsize=9)
                 if type == 'sp8med':
-                    cbar.set_label('cloud median 8$\mu$m intensity [MJy/sr]', rotation=90)
+                    cbartext = 'cloud median 8$\mu$m intensity [MJy/sr]'
                 elif type == 'comean':
-                    cbar.set_label('cloud mean CO intensity [K km/s]', rotation=90)
+                    cbartext = 'cloud mean CO intensity [K km/s]'
                 elif type == 'comax':
-                    cbar.set_label('cloud max CO intensity [K km/s]', rotation=90)
+                    cbartext = 'cloud max CO intensity [K km/s]'
                 elif type == 'stmean':
-                    cbar.set_label('cloud mean $\Sigma_{*}$ [$M_\odot$ $pc^{-2}$]', 
-                        rotation=90)
+                    cbartext = 'cloud mean $\Sigma_{*}$ [$M_\odot$ $pc^{-2}$]'
                 elif type == 'sp24med':
-                    cbar.set_label('cloud median 24$\mu$m intensity [MJy/sr]', rotation=90)
+                    cbartext = 'cloud median 24$\mu$m intensity [MJy/sr]'
                 elif type == '8um_avg':
-                    cbar.set_label('local mean 8$\mu$m intensity [MJy/sr]', rotation=90)
+                    cbartext = 'local mean 8$\mu$m intensity [MJy/sr]'
                 elif type == 'siglum':
-                    cbar.set_label('local mean $\Sigma_{mol}$ [$M_\odot$ $pc^{-2}$]', rotation=90)
+                    cbartext = 'local mean $\Sigma_{mol}$ [$M_\odot$ $pc^{-2}$]'
                 elif type == 'siglte':
-                    cbar.set_label('local mean $\Sigma_{LTE}$ [$M_\odot$ $pc^{-2}$]', rotation=90)
+                    cbartext = 'local mean $\Sigma_{LTE}$ [$M_\odot$ $pc^{-2}$]'
                 elif type == 'sigvir':
-                    cbar.set_label('local mean $\Sigma_{vir}$ [$M_\odot$ $pc^{-2}$]', rotation=90)
+                    cbartext = 'local mean $\Sigma_{vir}$ [$M_\odot$ $pc^{-2}$]'
+                else:
+                    cbartext = ''
+                if cbartext != '':
+                    cbar.set_label(cbartext, rotation=90)
                 plt.savefig('comp_'+line+'_'+pltname[i]+'_'+type+'.pdf', 
                     bbox_inches='tight')
                 plt.close()
