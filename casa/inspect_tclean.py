@@ -234,5 +234,6 @@ def inspect_tclean(prename = 'GMC1_12CO_12m7m', casalog=None,
         outfile = prename
     print("output file is {0}".format(outfile + '.tclean_results.pdf'))
     plt.savefig(outfile + '.tclean_results.pdf', bbox_inches='tight')
+    plt.close()
 
     return

@@ -1,7 +1,6 @@
-#python 2.7
+#!/usr/bin/env python
 
 import numpy as np
-from math import *
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
@@ -20,7 +19,7 @@ def findflux(fitsfile, beamadj=None):
     if beamadj is None:
         BMAJ, BMIN = hd['BMAJ'], hd['BMIN']
         CDELT1, CDELT2 = hd['CDELT1'], hd['CDELT2']
-        beamadj = (pi*BMAJ*BMIN)/(4*log(2)*abs(CDELT1*CDELT2))
+        beamadj = (np.pi*BMAJ*BMIN)/(4*np.log(2)*abs(CDELT1*CDELT2))
         flist = flist/beamadj
         totflux = totflux/beamadj
         
