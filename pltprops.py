@@ -344,7 +344,7 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2,
         xdata[xdata<0] += 180.
         pltdata.append(xdata)
     fig, axes = plt.subplots()
-    axes.hist(pltdata, bin_list, normed=0, histtype='bar', label=types)
+    axes.hist(pltdata, bin_list, histtype='bar', label=types)
     majorLocator = MultipleLocator(bin_size*2)
     minorLocator = MultipleLocator(bin_size)
     axes.xaxis.set_major_locator(majorLocator)

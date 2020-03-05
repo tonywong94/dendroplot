@@ -39,17 +39,18 @@ def fluxplot(prename = 'GMC1_12CO_12m7m', fileext = 'fits', outfile=None):
     convmodel = prename + '.convmodel.' + fileext
     
     flist_i, flux_i, vlist, vint, beamadj = findflux(image)
-    print("Flux of the Image =                      %4.2f [Jy km/s]" %flux_i)
-    
+    txtflux_i = "%.1f" % flux_i
+    print("Flux of the Image = ", txtflux_i, "[Jy km/s]")
     flist_r, flux_r = findflux(residual, beamadj=beamadj)
-    print("Flux of the Residual =                   %4.2f [Jy km/s]" %flux_r)
-    
+    txtflux_r = "%.1f" % flux_r
+    print("Flux of the Residual = ", txtflux_r, "[Jy km/s]")
     flist_c, flux_c = findflux(convmodel, beamadj=beamadj)
-    print("Flux of the Convolved Model =            %4.2f [Jy km/s]" %flux_c)
+    txtflux_c = "%.1f" % flux_c
+    print("Flux of the Convolved Model = ", txtflux_c, "[Jy km/s]")
 
-    plt.step(vlist, flist_i, 'b', label = 'Image')
-    plt.step(vlist, flist_r, 'g', label = 'Residual')
-    plt.step(vlist, flist_c, 'r', label = 'Convmodel')
+    plt.step(vlist, flist_i, 'b', label = 'Image '+txtflux_i)
+    plt.step(vlist, flist_r, 'g', label = 'Residual '+txtflux_r)
+    plt.step(vlist, flist_c, 'r', label = 'Convmodel '+txtflux_c)
     plt.axhline(y=0, color='k', linestyle='--')
     plt.legend(loc='upper right')
     plt.xlabel("Radio velocity [km/s]")
