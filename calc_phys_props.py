@@ -9,6 +9,7 @@ from astrodendro.analysis import ScalarStatistic, PPVStatistic
 from astropy.table import Table, Column
 from astropy.io.fits import getdata
 from astropy.stats import mad_std
+from astropy.wcs import WCS
 from matplotlib import pyplot as plt
 
 '''
@@ -53,7 +54,8 @@ def clustbootstrap(sindices, svalues, meta, bootstrap):
 
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
-        alphascale=1, distpc=5e4, copbcor=None, conoise=None, ancfile=None, anclabel=None):
+        alphascale=1, distpc=5e4, copbcor=None, conoise=None, ancfile=None, 
+        anclabel=None, refpos=None):
 
     rmstorad= 1.91
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
@@ -94,6 +96,15 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     print("\nPixels per beam: {:.2f}".format(ppbeam))
     # Assume every 2 channels have correlated noise
     indfac = np.sqrt(ppbeam*2)
+    if refpos is not None:
+        pixcrd = np.array([[hd3['CRPIX1'], hd3['CRPIX2'], 1]])
+        w = WCS(hd3)
+        # Debug: only works with hd3 having 3 axes
+        wcscrd = w.wcs_pix2world(pixcrd, 1)
+        refpix = w.wcs_world2pix([[refpos[0],refpos[1],wcscrd[0][2]]],0)
+        xref = refpix[0][0]
+        yref = refpix[0][1]
+        print('Ref pixel is',xref,yref)
 
     # ---- read in ancillary files
     if copbcor is not None and conoise is not None:
@@ -216,6 +227,11 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     sigvir = mvir / xctarea
     alpha  = mvir / mlumco
 
+    # ---- calculate the projected distance from the reference position in arcsec
+    if refpos is not None:
+        refdist = abs(cdelt2/u.pix) * np.sqrt(
+                  (xref-cat['x_cen'])**2 + (yref-cat['y_cen'])**2 )
+    
     # ---- make the physical properties table
     ptab = Table()
     ptab['_idx']      = Column(srclist)
@@ -247,4 +263,6 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         ptab[anclabel] = Column(ancmean, unit=anchd['BUNIT'])
         ancferr = ancrms / ancmean
         ptab['e_'+anclabel] = Column(ancferr)
+    if refpos is not None:
+        ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)

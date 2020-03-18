@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Produce color-coded maps of structure locations, and color-coded tree diagrams.
+
 import sys
 import csv
 import numpy as np
@@ -32,51 +34,67 @@ def scale_values(cat=None, type=None, cubhd=None):
             (cat['v_cen']-cubhd['crpix3']))
         cat[type].unit = 'km / s'
         label = 'mean velocity'
+    elif type == 'vrms_k':
+        label = 'velocity dispersion'
     elif type == 'tmax':
         label = 'peak temperature'
     else:
         label = type
     return label
  
-def get_limits(vmin=None, vmax=None, datavals=None, i=0):
+def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
     if vmin is None:
-        v0 = np.floor(np.min(datavals[np.nonzero(datavals)]))
+        v0 = np.min(datavals[np.isfinite(datavals)])
     else:
         if not isinstance(vmin, list): vmin = [vmin]
         v0 = vmin[i]
     if vmax is None:
-        v1 = datavals.max()
+        v1 = np.max(datavals[np.isfinite(datavals)])
+        #v1 = datavals.max()
     else:
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
     # Choose the ticks
-    dt = np.floor((v1-v0)/5.)
-    if dt == 0:
-        dt = np.floor(2*(v1-v0))/10.
-    tick0 = dt*np.ceil(v0/dt)
-    tick1 = dt*np.ceil(v1/dt)
-    ticks = np.arange(tick0, tick1, dt)
-    if dt < 1:
-        ticklab = ["%.1f" % val for val in ticks]
+    if lognorm:
+        tick0 = np.ceil(np.log10(v0))
+        tick1 = np.ceil(np.log10(v1))
+        pow = np.arange(tick0, tick1, 1)
+        ticks=[]
+        for j in pow:
+            ticks.extend([10**j, 2*10**j, 5*10**j])
+        ticklab = ["%g" % val for val in ticks]
     else:
-        ticklab = ["%d" % val for val in ticks]
+        dex = 10**np.floor(np.log10(abs(v1-v0)))
+        if abs(v1-v0)/dex > 5:
+            dt = 2*dex
+        else:
+            dt = dex
+        tick0 = dt * np.ceil(v0/dt)
+        tick1 = dt * np.ceil(v1/dt)
+        ticks = np.arange(tick0, tick1, dt)
+        if dt < 1:
+            ticklab = ["%.1f" % val for val in ticks]
+        else:
+            ticklab = ["%d" % val for val in ticks]
     print('Ticks:', ticklab)
     return v0, v1, ticks, ticklab
 
-#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
+#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%&%
 # Image structures color-coded by properties
-#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
+#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%&%
 
 def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None, 
-        props=['tmax'], vmin=None, vmax=None, cmapname='jet', prefix='output', **kwargs):
+        props=['tmax'], vmin=None, vmax=None, lognorm=False,
+        cmapname='jet', prefix='output', **kwargs):
     print("Image leaves and clusters colored by properties")
     srclist = subcat['_idx'].tolist()
     # Make a plot for each requested property
     for i, type in enumerate(props):
         fig = plt.figure(figsize=(8, 8))
+        # --- Plot the image as background
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         imax = np.nanmax(img)
-        im = ax.matshow(img, origin='lower', cmap=plt.cm.Blues, vmax=imax)
+        im = ax.matshow(img, origin='lower', cmap=plt.cm.Greys, vmax=imax)
         if 'xlims' in kwargs:
             ax.set_xlim(kwargs['xlims'])
         if 'ylims' in kwargs:
@@ -85,33 +103,38 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
         plt.tick_params(axis='both', which='both', bottom=False, top=False, 
             left=False, labelleft=True, labeltop=True)
         name = scale_values(cat=subcat, type=type, cubhd=cubhd)
-        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=subcat[type], i=i)
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=subcat[type], 
+                                        lognorm=lognorm, i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
         for i, c in enumerate(srclist):
             s = analysis.PPVStatistic(dendrogram[c])
-            scaled_v = (subcat[type][i]-v0)/(v1-v0)
-            col = cmap(scaled_v)
-            ellipse = s.to_mpl_ellipse(color=col)
+            if lognorm:
+                cnorm = mpl.colors.LogNorm(vmin=v0, vmax=v1)
+            else:
+                cnorm = mpl.colors.Normalize(vmin=v0, vmax=v1)
+            scaled_v = cnorm(subcat[type][i])
+            ellipse = s.to_mpl_ellipse(color=cmap(scaled_v))
             ax.add_patch(ellipse)
         cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
-             orientation='vertical', norm=mpl.colors.Normalize(vmin=v0, vmax=v1))
+             orientation='vertical', norm=cnorm)
         cbar.ax.tick_params(labelsize=9)
         cbar.set_ticks(ticks)
-        cbar.ax.set_yticklabels(tlbl, rotation=90, va='center')
-        cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=15)
+        cbar.ax.set_yticklabels(tlbl, rotation=0, va='center')
+        cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=10)
         plt.savefig(prefix+'_'+type.replace("_","")+'.pdf', 
             bbox_inches='tight')
         plt.close()
     return
 
-#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
+#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%&%
 # Draw tree diagram color-coded by properties
-#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%
+#%&%&%&%&%&%&%&%&%&%&%&%&%&%%&%&%&%&%&%&%&%&%
 
 def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None, 
-        props=['tmax'], cmapname='jet', vmin=None, vmax=None, prefix='output'):
+        props=['tmax'], cmapname='jet', vmin=None, vmax=None, lognorm=False,
+        prefix='output'):
     print("Draw tree diagram colored by properties")
     srclist = cat['_idx'].tolist()
     # Make a plot for each requested property
@@ -123,19 +146,23 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         ax.set_yscale('log')
         p = dendrogram.plotter()
         name = scale_values(cat=cat, type=type, cubhd=cubhd)
-        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type], i=i)
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type],
+                                        lognorm=lognorm, i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
         for st in dendrogram.all_structures:
-            scaled_v = (cat[type][st.idx]-v0)/(v1-v0)
-            dcolr = cmap(scaled_v)
-            p.plot_tree(ax, structure=[st], colors=dcolr, subtree=False)
+            if lognorm:
+                cnorm = mpl.colors.LogNorm(vmin=v0, vmax=v1)
+            else:
+                cnorm = mpl.colors.Normalize(vmin=v0, vmax=v1)
+            scaled_v = cnorm(cat[type][st.idx])
+            p.plot_tree(ax, structure=[st], colors=cmap(scaled_v), subtree=False)
         cax = fig.add_axes([0.93, 0.1, 0.02, 0.8])
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
-             orientation='vertical', norm=mpl.colors.Normalize(vmin=v0, vmax=v1))
+             orientation='vertical', norm=cnorm)
         cbar.ax.tick_params(labelsize=9)
         cbar.set_ticks(ticks)
-        cbar.ax.set_yticklabels(tlbl, rotation=90, va='center')
+        cbar.ax.set_yticklabels(tlbl, rotation=0, va='center')
         cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=15)
         if label == 'pcc_12':
             ax.annotate('N', xy=(63, 2.5), xytext=(40, 60),
@@ -153,7 +180,7 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
 
 def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None, 
         types=['v_cen','v_rms','tmax','imean'], outdir='plots', vmin=None, vmax=None,
-        **kwargs):
+        lognorm=False, **kwargs):
     # Header info
     hdu3 = fits.open(cubefile)[0]
     hd3 = hdu3.header
@@ -174,10 +201,11 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
                     idc.append(int(row[0]))
             subcat = cat[idc]
             props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
-                props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, **kwargs)
+                props=types, prefix=outdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, 
+                lognorm=lognorm, **kwargs)
         except IOError:
             print(label,set,'not found')
     # Plot colored dendrogram
     props_coltree(label=label, dendrogram=d, cat=cat, cubhd=hd3, props=types, 
-        prefix=outdir+'/'+label, vmin=vmin, vmax=vmax)
+        prefix=outdir+'/'+label, vmin=vmin, vmax=vmax, lognorm=lognorm)
     return
