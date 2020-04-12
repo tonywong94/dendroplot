@@ -9,12 +9,12 @@ line = ['12CO' | '13CO' | 'CS' | 'C18O']
 vis12m = '../12m/calibrated_final.ms'
 vis7m  = '../7m/calibrated_final.ms'
 weighting = ['briggs' | 'natural']
-deconvolver = ['clark' | 'multiscale']
+deconvolver = ['hogbom' | 'clark' | 'multiscale']
 usemask = ['pb' | 'auto-thresh' | 'auto-thresh2' | 'auto-multithresh']
 '''
 
 def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None, 
-        startmodel=None, weighting=None, deconvolver=None, usemask=None, mask=None,
+        startmodel=None, weighting=None, deconvolver='hogbom', usemask=None, mask=None,
         imsize=None, cellsize=None, vstart=None, nchan=None, phasecenter=None,
         pblimit=0.2, outframe='LSRK', spw='', width='0.2km/s', niter=10000, 
         nsigma=1., fastnoise=False, pbmask=0.5, scales=[0,4,12], smallscalebias=0.6,
@@ -68,7 +68,7 @@ def run_tclean(name=None, line=None, level=None, vis12m=None, vis7m=None,
     weight_types=['briggs', 'natural']
     if weighting not in weight_types:
         raise ValueError("Invalid weighting. Expected one of: %s" % weight_types)
-    decon_types=['clark', 'multiscale']
+    decon_types=['hogbom', 'clark', 'multiscale']
     if deconvolver not in decon_types:
         raise ValueError("Invalid deconvolver. Expected one of: %s" % decon_types)
     mask_types=['pb','auto-thresh','auto-thresh2','auto-multithresh','user']
