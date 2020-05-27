@@ -266,3 +266,24 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     if refpos is not None:
         ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
+
+
+def refdist_redo(label='pcc_12', cubefile=None, refpos=None, 
+                 outfile='_physprop_newref.txt'):
+    cube, hd3 = getdata(cubefile, header=True)
+    cat = Table.read(label+'_full_catalog.txt', format='ascii.ecsv')
+    ptab = Table.read(label+'_physprop.txt', format='ascii.ecsv')
+    if refpos is not None:
+        cdelt2 = abs(hd3['CDELT2']) * 3600. * u.arcsec
+        pixcrd = np.array([[hd3['CRPIX1'], hd3['CRPIX2'], 1]])
+        w = WCS(hd3)
+        # Debug: only works with hd3 having 3 axes
+        wcscrd = w.wcs_pix2world(pixcrd, 1)
+        refpix = w.wcs_world2pix([[refpos[0],refpos[1],wcscrd[0][2]]],0)
+        xref = refpix[0][0]
+        yref = refpix[0][1]
+        print('Ref pixel is',xref,yref)
+        refdist = abs(cdelt2/u.pix) * np.sqrt(
+                  (xref-cat['x_cen'])**2 + (yref-cat['y_cen'])**2 )
+        ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
+        ptab.write(label+outfile, format='ascii.ecsv', overwrite=True)

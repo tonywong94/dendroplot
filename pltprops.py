@@ -260,7 +260,7 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95,
 
 # -------------------------------------------------------------------------------
 
-def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1,
+def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet',
             xplot=['rad_pc', 'vrms_k', 'area_pc2'],
             yplot=['vrms_k', 'mlumco',  'mlumco'],
             xlims=[[-1.5,1],   [-2,2],    [-1,3]],
@@ -364,24 +364,24 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1,
     # Must be positive to take logarithm
     postive = (x>0) & (y>0)
     z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', '8um_avg', 'refdist']
-    cmap = plt.cm.get_cmap('jet')
+    cmap = plt.cm.get_cmap(colmap)
     for i in range(len(z)):
         if z[i] not in cat.keys() and z[i] not in pcat.keys():
             continue
         fig, axes = plt.subplots()
         axes.set_aspect('equal')
-        plt.errorbar( np.log10(x[postive]), np.log10(y[postive]), 
-            xerr=xerr[postive]/np.log(10), yerr=yerr[postive]/np.log(10), 
-            ecolor='dimgray', capsize=0, 
-            zorder=1, marker=None, ls='None', lw=.5, label=None)
+#         plt.errorbar( np.log10(x[postive]), np.log10(y[postive]), 
+#             xerr=xerr[postive]/np.log(10), yerr=yerr[postive]/np.log(10), 
+#             ecolor='dimgray', capsize=0, 
+#             zorder=1, marker=None, ls='None', lw=.5, label=None)
         if z[i] in cat.keys():
             zlbl = z[i]+' ['+str(cat[z[i]].unit)+']'
             sctplot( np.log10(x[postive]), np.log10(y[postive]), cat[z[i]][postive], 
-                mec='none', msize=10, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
+                mec='none', msize=6, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
         elif z[i] in pcat.keys():
             zlbl = z[i]+' ['+str(pcat[z[i]].unit)+']'
             sctplot( np.log10(x[postive]), np.log10(y[postive]), pcat[z[i]][postive], 
-                mec='none', msize=10, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
+                mec='none', msize=6, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
         std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0], 
             [shade['rad_pc'],shade['vrms_k']])
         shortname = re.sub('_', '', z[i])
@@ -463,6 +463,15 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1,
                     yerr=yerr[postive]/np.log(10), xrange=xlims[i], color='b',
                     doline=False, parprint=False)
                 tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
+        # Plot the binned values if nbin > 0
+        if nbin > 0:
+            ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[postive]), 
+                np.log10(y[postive]), statistic='mean', bins=nbin, range=xlims[i])
+            ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[postive]), 
+                np.log10(y[postive]), statistic='std', bins=nbin, range=xlims[i])
+            xbin = 0.5*(xbinedge[1:]+xbinedge[:-1])
+            plt.errorbar(xbin, ymean, yerr=ystd, ecolor='orange', marker='o', 
+                         ls='', mfc='yellow', mec='orange', zorder=10)
         # Make the labels and draw the gray shaded boxes
         std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], [xmin,ymin])
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)

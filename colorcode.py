@@ -55,7 +55,10 @@ def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
     # Choose the ticks
+    print(v0,v1)
     if lognorm:
+        if (v0<0): v0 = 1e-2
+        if (v1<0): v1 = 1.
         tick0 = np.ceil(np.log10(v0))
         tick1 = np.ceil(np.log10(v1))
         pow = np.arange(tick0, tick1, 1)
@@ -90,6 +93,7 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
     srclist = subcat['_idx'].tolist()
     # Make a plot for each requested property
     for i, type in enumerate(props):
+        print('\nWorking on', type)
         fig = plt.figure(figsize=(8, 8))
         # --- Plot the image as background
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
