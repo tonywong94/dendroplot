@@ -55,7 +55,6 @@ def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
     # Choose the ticks
-    print(v0,v1)
     if lognorm:
         if (v0<0): v0 = 1e-2
         if (v1<0): v1 = 1.
