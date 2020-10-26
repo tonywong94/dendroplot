@@ -55,9 +55,10 @@ def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
     # Choose the ticks
+    print('v0, v1:', v0, v1)
     if lognorm:
-        if (v0<0): v0 = 1e-2
-        if (v1<0): v1 = 1.
+        if (v0<=0): v0 = 1e-2
+        if (v1<=0): v1 = 1.
         tick0 = np.ceil(np.log10(v0))
         tick1 = np.ceil(np.log10(v1))
         pow = np.arange(tick0, tick1, 1)
@@ -102,11 +103,13 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
             ax.set_xlim(kwargs['xlims'])
         if 'ylims' in kwargs:
             ax.set_ylim(kwargs['ylims'])
-
+        name = scale_values(cat=subcat, type=type, cubhd=cubhd)
+        datavals=subcat[type]
+        if lognorm:
+            datavals[datavals<=0] = np.nan
         plt.tick_params(axis='both', which='both', bottom=False, top=False, 
             left=False, labelleft=True, labeltop=True)
-        name = scale_values(cat=subcat, type=type, cubhd=cubhd)
-        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=subcat[type], 
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=datavals, 
                                         lognorm=lognorm, i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
