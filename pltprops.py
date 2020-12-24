@@ -363,7 +363,7 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
     x, y, xerr, yerr = [pcat[plotx], pcat[ploty], pcat['e_'+plotx], pcat['e_'+ploty]]
     # Must be positive to take logarithm
     postive = (x>0) & (y>0)
-    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', '8um_avg', 'refdist']
+    z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', 'sigvir', '8um_avg', 'refdist']
     cmap = plt.cm.get_cmap(colmap)
     for i in range(len(z)):
         if z[i] not in cat.keys() and z[i] not in pcat.keys():
@@ -378,10 +378,36 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
             zlbl = z[i]+' ['+str(cat[z[i]].unit)+']'
             sctplot( np.log10(x[postive]), np.log10(y[postive]), cat[z[i]][postive], 
                 mec='none', msize=6, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
+            q1 = np.nanpercentile(cat[z[i]], 25)
+            q2 = np.nanpercentile(cat[z[i]], 75)
+            print('Quartiles for {} go from {} to {}'.format(z[i],q1,q2))
+            low = (cat[z[i]] < q1)
+            high = (cat[z[i]] > q2)
         elif z[i] in pcat.keys():
             zlbl = z[i]+' ['+str(pcat[z[i]].unit)+']'
             sctplot( np.log10(x[postive]), np.log10(y[postive]), pcat[z[i]][postive], 
                 mec='none', msize=6, zorder=2, cmap=cmap, label=zlbl, alpha=alpha )
+            q1 = np.nanpercentile(pcat[z[i]], 25)
+            q2 = np.nanpercentile(pcat[z[i]], 75)
+            print('Quartiles for {} go from {} to {}'.format(z[i],q1,q2))
+            low = (pcat[z[i]] < q1)
+            high = (pcat[z[i]] > q2)
+        if nbin > 0:
+            lowsel = (postive) & (low)
+            hisel = (postive) & (high)
+            ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[lowsel]), 
+                np.log10(y[lowsel]), statistic='mean', bins=nbin, range=xlims[0])
+            ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[lowsel]), 
+                np.log10(y[lowsel]), statistic='std', bins=nbin, range=xlims[0])
+            xbin = 0.5*(xbinedge[1:]+xbinedge[:-1])
+            plt.errorbar(xbin, ymean, yerr=ystd, ecolor='k', marker='o', 
+                         ls='', mfc='salmon', mec='k', zorder=10)
+            ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[hisel]), 
+                np.log10(y[hisel]), statistic='mean', bins=nbin, range=xlims[0])
+            ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[hisel]), 
+                np.log10(y[hisel]), statistic='std', bins=nbin, range=xlims[0])
+            plt.errorbar(xbin, ymean, yerr=ystd, ecolor='k', marker='o', 
+                         ls='', mfc='cyan', mec='k', zorder=10)
         std_overlay(pcat, [plotx, ploty], xlims[0], ylims[0], 
             [shade['rad_pc'],shade['vrms_k']])
         shortname = re.sub('_', '', z[i])

@@ -109,7 +109,8 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
         tpkav[i] = np.nanmean(peakim)
     if hd3['BUNIT'].upper()=='JY/BEAM':
         omega_B = np.pi/(4*np.log(2)) * bmaj * bmin
-        convfac = (u.Jy).to(u.K, equivalencies=u.brightness_temperature(omega_B,freq))
+        convfac = (u.Jy).to(u.K, equivalencies=u.brightness_temperature(freq,
+                            beam_area=omega_B))
         tmax *= convfac
         tpkav *= convfac
     newcol = Column(tmax, name='tmax')

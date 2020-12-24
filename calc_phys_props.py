@@ -155,7 +155,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         bootflux  = np.asarray(emom0s) * u.Jy
         bootmvir  = (5*rmstorad*bootvrms**2*bootrrms/const.G).to(u.solMass)
         bootmlum  = alphaco*alphascale*deltav*asarea*(bootflux).to(
-            u.K, equivalencies=u.brightness_temperature(as2,freq))
+            u.K, equivalencies=u.brightness_temperature(freq, beam_area=as2))
         bootalpha = bootmvir/bootmlum
 
         emaj[j]   = indfac * mad_std(bootmaj)  / np.median(bootmaj)
@@ -220,7 +220,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     else:
         # lumco = Luminosity in K km/s pc^2
         lumco  = deltav * asarea * (cat['flux']).to(
-            u.K,equivalencies=u.brightness_temperature(as2,freq))
+            u.K,equivalencies=u.brightness_temperature(freq, beam_area=as2))
         mlumco = alphaco * alphascale * lumco
     siglum = mlumco/xctarea
     mvir   = (5*rmstorad*v_rms**2*rms_pc/const.G).to(u.solMass)  # Rosolowsky+ 08
