@@ -190,6 +190,8 @@ def linefitting(x, y, xerr=None, yerr=None, xrange=[-5, 5], color='b', prob=.95,
     print("\nLineregress parameters: {:.2f} + x*({:.2f}+/-{:.2f})".format(
            a, b, std_err))
     # --- kmpfit approach
+    #print(np.amin(xfit),np.amax(xfit),np.amin(yfit),np.amax(yfit))
+    #print(np.amin(xerrfit),np.amax(xerrfit),np.amin(yerrfit),np.amax(yerrfit))
     fitobj = kmpfit.Fitter(residuals=residuals, data=(xfit, yfit, xerrfit, yerrfit))
     fitobj.fit(params0=[a, b])
     print("\n======== Results kmpfit with effective variance =========")
@@ -293,9 +295,6 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
         pcat = Table.read(label+'_physprop_add.txt', format='ascii.ecsv')
     else:
         pcat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
-    newcol = Column(pcat['area_pc2']*0., name='e_area_pc2')
-    newcol.unit = 'pc2'
-    pcat.add_column(newcol)
 
     # Get the indices of trunks, branches, leaves, and clusters.
     # idc[0] is a list of trunk indices
@@ -357,7 +356,7 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
     plt.savefig('plots/'+label+'_pahist.pdf', bbox_inches='tight')
     plt.close()
 
-    # Size-linewidth relation, color coded
+    # Size-linewidth relation, color coded 
     plotx = 'rad_pc'
     ploty = 'vrms_k'
     x, y, xerr, yerr = [pcat[plotx], pcat[ploty], pcat['e_'+plotx], pcat['e_'+ploty]]
@@ -366,6 +365,7 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
     z    = ['x_cen', 'y_cen', 'v_cen', 'tpkav', 'siglum', 'sigvir', '8um_avg', 'refdist']
     cmap = plt.cm.get_cmap(colmap)
     for i in range(len(z)):
+        print('Size-linewidth relation color coded by',z[i])
         if z[i] not in cat.keys() and z[i] not in pcat.keys():
             continue
         fig, axes = plt.subplots()
@@ -421,15 +421,19 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
     for col in ['a', 'a_err', 'b', 'b_err', 'chi2red', 'eps']:
         tab[col].format = '.2f'
     for i in range(len(xplot)):
-        if 'e_'+xplot[i] in pcat.keys() and 'e_'+yplot[i] in pcat.keys():
-            x, y, xerr, yerr = [pcat[xplot[i]], pcat[yplot[i]], pcat['e_'+xplot[i]], 
-                pcat['e_'+yplot[i]]]
+        print('\nPlotting',xplot[i],'and',yplot[i])
+        x, y = [pcat[xplot[i]], pcat[yplot[i]]]
+        if 'e_'+xplot[i] in pcat.keys():
+            xerr = pcat['e_'+xplot[i]]
         else:
-            x, y = [pcat[xplot[i]], pcat[yplot[i]]]
             xerr = x*0 + 0.1
+        if 'e_'+yplot[i] in pcat.keys():
+            yerr = pcat['e_'+yplot[i]]
+        else:
             yerr = y*0 + 0.1
+        else:
         # --- Must be positive to take logarithm
-        postive = (x>0) & (y>0)
+        postive = (x>0) & (y>0) & (xerr>0) & (yerr>0)
         # --- Restrict indices of subsets to positive values
         idsel = idc[:]
         for j in range(4):
@@ -444,7 +448,7 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
             print('Excluding points from {0} below {1}'.format(yplot[i],shade[yplot[i]]))
             if shade[yplot[i]] > 0:
                 ymin = shade[yplot[i]]
-        unshade = (x > xmin) & (y > ymin)
+        unshade = (postive) & (x > xmin) & (y > ymin)
         #
         # --- Plot trunks, branches, leaves
         fig, axes = plt.subplots()

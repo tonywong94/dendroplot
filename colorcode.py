@@ -6,6 +6,7 @@ import sys
 import csv
 import numpy as np
 import matplotlib as mpl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import pyplot as plt
 from astrodendro import Dendrogram, analysis
 from astropy import units as u
@@ -108,7 +109,7 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
         if lognorm:
             datavals[datavals<=0] = np.nan
         plt.tick_params(axis='both', which='both', bottom=False, top=False, 
-            left=False, labelleft=True, labeltop=True)
+            left=False, labelleft=False, labeltop=False)
         v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=datavals, 
                                         lognorm=lognorm, i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
@@ -122,13 +123,17 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
             scaled_v = cnorm(subcat[type][i])
             ellipse = s.to_mpl_ellipse(color=cmap(scaled_v))
             ax.add_patch(ellipse)
-        cax = fig.add_axes([0.92, 0.1, 0.03, 0.8])
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.15)
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
              orientation='vertical', norm=cnorm)
         cbar.ax.tick_params(labelsize=9)
         cbar.set_ticks(ticks)
         cbar.ax.set_yticklabels(tlbl, rotation=0, va='center')
-        cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=10)
+        if str(subcat[type].unit) == '':
+            cbar.set_label(name,size=12,labelpad=10)
+        else:
+            cbar.set_label(name+' ['+str(subcat[type].unit)+']',size=12,labelpad=10)
         plt.savefig(prefix+'_'+type.replace("_","")+'.pdf', 
             bbox_inches='tight')
         plt.close()
@@ -169,7 +174,10 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         cbar.ax.tick_params(labelsize=9)
         cbar.set_ticks(ticks)
         cbar.ax.set_yticklabels(tlbl, rotation=0, va='center')
-        cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=15)
+        if str(cat[type].unit) == '':
+            cbar.set_label(name,size=12,labelpad=10)
+        else:
+            cbar.set_label(name+' ['+str(cat[type].unit)+']',size=12,labelpad=15)
         if label == 'pcc_12':
             ax.annotate('N', xy=(63, 2.5), xytext=(40, 60),
                 arrowprops=dict(facecolor='gray',width=3,headwidth=10,headlength=10,
