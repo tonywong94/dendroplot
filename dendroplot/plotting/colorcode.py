@@ -145,9 +145,8 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
 
 def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None, 
         props=['tmax'], cmapname='jet', vmin=None, vmax=None, lognorm=False,
-        prefix='output'):
+        xmin=None, xmax=None, prefix='output'):
     print("Draw tree diagram colored by properties")
-    srclist = cat['_idx'].tolist()
     # Make a plot for each requested property
     for i, type in enumerate(props):
         fig = plt.figure(figsize=(8, 5))
@@ -155,6 +154,8 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         ax.set_xlabel('Structure')
         ax.set_ylabel('Intensity [K]')
         ax.set_yscale('log')
+        if xmin is not None and xmax is not None:
+            ax.set_xlim(xmin,xmax)
         p = dendrogram.plotter()
         name = scale_values(cat=cat, type=type, cubhd=cubhd)
         v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type],
