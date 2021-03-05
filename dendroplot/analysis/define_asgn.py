@@ -4,7 +4,6 @@ from astropy import constants as const
 from astrodendro import Dendrogram
 from astropy.io import fits
 from astropy.io.fits import getheader, getdata
-import matplotlib.pyplot as plt
 
 def define_asgn(indir,target,line,res='2p5as',outdir='',write=True):
     '''
