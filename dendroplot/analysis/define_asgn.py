@@ -4,25 +4,24 @@ from astropy import constants as const
 from astrodendro import Dendrogram
 from astropy.io import fits
 from astropy.io.fits import getheader, getdata
+import os
 
-def define_asgn(indir,target,line,res='2p5as',outdir='',write=True):
+def define_asgn(image,dendrogram,label_out='',write=True):
     '''
     PURPOSE: Writes and returns a 3D fits file with the index from the dendrogram as the BVALUE
         Required keywords:
-            indir: location of dendrogram and image cube
-            target: name of object (e.g. '30dor')
-            line: '12' for 12CO or '13' for 13CO
+            image: location of fits cube
+            dendrogram: location of dendrogram hdf5 file
         Optional keywords:
-            res: angular resolution of cube, defaults to 2.5 arcseconds
-            outdir: location to save assignment cube, defaults to input directory
-            write: set to False to prevent writing
+            label_out: string to save assignment cube. automatically adds .asgn.fits.gz to end of string, 
+                        defaults to 'current working directory + assignment_cube.asgn.fits.gz' 
+            write: set to False to prevent writing fits file
     '''
-    if outdir == '':
-        outdir = indir
-    label = indir+target+'_'+line
-    d = Dendrogram.load_from(label+'_dendrogram.hdf5')
-    cube, hd3 = getdata(label+'CO21_2p5as.image.fits.gz', header=True)
-    asgn = np.ones(cube.shape)
+    if label_out == '':
+        label_out = os.getcwd()+'/assignment_cube'
+    d = Dendrogram.load_from(dendrogram)
+    cube, hd3 = getdata(image, header=True)
+    asgn = np.ones(cube.shape).astype(np.float32)
     asgn[:] = np.NaN
     for j in range(len(d)):
         if j % 10 == 1:
@@ -33,6 +32,6 @@ def define_asgn(indir,target,line,res='2p5as',outdir='',write=True):
         new_header.set('BUNIT','Index')
         hdu = fits.PrimaryHDU(asgn)
         hdu.header = new_header
-        hdu.writeto(outdir+target+'_'+line+'_'+res+'.asgn.fits.gz')
-        print('Wrote assignment cube to ',label+'asgn.fits.gz')
+        hdu.writeto(label_out+'.asgn.fits.gz')
+        print('Wrote assignment cube to ',label_out)
     return asgn
