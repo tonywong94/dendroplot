@@ -21,6 +21,9 @@ def define_asgn(image,dendrogram,label_out='',write=True):
         label_out = os.getcwd()+'/assignment_cube'
     d = Dendrogram.load_from(dendrogram)
     cube, hd3 = getdata(image, header=True)
+    #alternatively, we only need to load the header:
+    #hd3 = getheader(image)
+    #asgn = np.ones((hd3['NAXIS3'], hd3['NAXIS2'], hd3['NAXIS1'])).astype(np.float32)
     asgn = np.ones(cube.shape).astype(np.float32)
     asgn[:] = np.NaN
     for j in range(len(d)):
