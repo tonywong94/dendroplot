@@ -431,7 +431,6 @@ def pltprops(label, distpc=5e4, dvkms=0.2, beam=2, alpha=1, nbin=16, colmap='jet
             yerr = pcat['e_'+yplot[i]]
         else:
             yerr = y*0 + 0.1
-        else:
         # --- Must be positive to take logarithm
         postive = (x>0) & (y>0) & (xerr>0) & (yerr>0)
         # --- Restrict indices of subsets to positive values
