@@ -18,7 +18,7 @@ setup(name='dendroplot',
                         'kapteyn',
                         'astrodendro'],
     url='https://github.com/tonywong94/dendroplot',
-    download_url = 'https://github.com/tonywong94/dendroplot/archive/refs/tags/v0.1.0.tar.gz', 
+    download_url = 'https://github.com/tonywong94/dendroplot/archive/refs/tags/v0.1.1.tar.gz', 
     packages=['dendroplot', 'dendroplot.analysis', 'dendroplot.lte', 
               'dendroplot.plotting'],
     )
