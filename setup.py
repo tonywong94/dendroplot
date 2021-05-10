@@ -1,8 +1,13 @@
 from setuptools import setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(name='dendroplot',
-    version='0.1.0',
+    version='0.1.1',
     description='Helper tasks for astrodendro',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Tony Wong',
     author_email = 'tonywong94@gmail.com',
     install_requires = ['numpy',
@@ -14,5 +19,6 @@ setup(name='dendroplot',
                         'astrodendro'],
     url='https://github.com/tonywong94/dendroplot',
     download_url = 'https://github.com/tonywong94/dendroplot/archive/refs/tags/v0.1.0.tar.gz', 
-    packages=['dendroplot'],
+    packages=['dendroplot', 'dendroplot.analysis', 'dendroplot.lte', 
+              'dendroplot.plotting'],
     )
