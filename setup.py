@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='dendroplot',
-    version='1.0',
+    version='0.1.0',
     description='Helper tasks for astrodendro',
     author='Tony Wong',
     author_email = 'tonywong94@gmail.com',
@@ -13,6 +13,6 @@ setup(name='dendroplot',
                         'kapteyn',
                         'astrodendro'],
     url='https://github.com/tonywong94/dendroplot',
-    packages=['dendroplot', 'dendroplot.analysis', 
-              'dendroplot.lte', 'dendroplot.plotting'],
+    download_url = 'https://github.com/tonywong94/dendroplot/archive/refs/tags/v0.1.0.tar.gz', 
+    packages=['dendroplot'],
     )
