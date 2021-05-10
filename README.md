@@ -1,5 +1,5 @@
 # dendroplot
-Python analysis scripts for LMC ALMA data.  Some work is still needed to simplify the structure, but currently available are the following:
+Python analysis scripts for applying dendrograms to LMC ALMA data.  Some work is still needed to simplify the structure, but currently available are the following:
 
 `from dendroplot import run_dendro`
 
