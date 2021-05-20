@@ -7,5 +7,5 @@ Python analysis scripts for applying dendrograms to LMC ALMA data.  Some work is
 
 `from dendroplot.lte import lte, add_ltemass`
 
-`from dendroplot.plotting import pltprops, colorcode`
+`from dendroplot.plotting import pltprops, colorcode, visualize_volume, yso_postage_stamp`
 
