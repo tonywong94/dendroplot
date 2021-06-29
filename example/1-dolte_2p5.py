@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 import os
-import sys
-sys.path.append(os.path.expanduser('~/Work/bin/py-package/lmc_alma_analysis/'))
-from lte import lte
+from dendroplot.lte import lte
 
 # Directory where input images reside.
 indir = os.getcwd()
+
 # Directory to write output files.
-outdir = os.getcwd()+'/lte/'
+outdir = os.getcwd()+'/lte'
 if not os.path.isdir(outdir):
     os.makedirs(outdir)
 

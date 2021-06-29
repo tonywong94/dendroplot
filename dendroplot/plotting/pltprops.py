@@ -462,7 +462,8 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
 # -------------------------------------------------------------------------------
 
 def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2, 
-            alpha=1, cmap='jet', nbin=0, lobin_col='cyan', hibin_col='salmon',
+            alpha=1, cmap='jet', doline=True, 
+            nbin=0, lobin_col='cyan', hibin_col='salmon',
             xplot=['rad_pc',   'vrms_k','area_pc2'],
             yplot=['vrms_k',   'mlumco',  'mlumco'],
             xlims=[[-1.5,1],     [-2,2],    [-1,3]],
@@ -490,6 +491,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         Transparency parameter for color-coded scatter plots, between 0 and 1.
     cmap : matplotlib.colors.Colormap
         Name of the color map for color coding
+    doline : boolean
+        True to plot best-fit line and confidence band for 'full' plots.  
+        Otherwise the parameters are calculated but not plotted.
     nbin : int
         Number of binned averages to generate across horizontal axis of each plot.
         Default is not to perform binning (nbin=0).
@@ -722,19 +726,18 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                  xerr=xerr[idsel[2]]/np.log(10), yerr=yerr[idsel[2]]/np.log(10), 
                  col='green', marker='o', mec='k', ms=15, zorder=3, label='leaves' )
         # Plot the best-fitting line and confidence interval
-        if pltname[i] not in ['bnd', 'bndlte']:
-            if len(x[unshade]) > 2:
-                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
-                    np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
-                    yerr=yerr[unshade]/np.log(10), color='b',
-                    doline=True, parprint=False, prob=.997, xlims=xlims[i])
-                tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
-            if pltname[i] == 'rdv':
-                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
-                    np.log10(y[postive]), xerr=xerr[postive]/np.log(10), 
-                    yerr=yerr[postive]/np.log(10), color='b',
-                    doline=False, parprint=False)
-                tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
+        if len(x[unshade]) > 2:
+            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
+                np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
+                yerr=yerr[unshade]/np.log(10), color='b',
+                doline=doline, parprint=False, prob=.997, xlims=xlims[i])
+            tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
+        if pltname[i] == 'rdv':
+            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
+                np.log10(y[postive]), xerr=xerr[postive]/np.log(10), 
+                yerr=yerr[postive]/np.log(10), color='b',
+                doline=False, parprint=False)
+            tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
         # Plot the binned values if nbin > 0
         if nbin > 0:
             ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[postive]), 

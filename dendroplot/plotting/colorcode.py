@@ -153,7 +153,6 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.set_xlabel('Structure')
         ax.set_ylabel('Intensity [K]')
-        ax.set_yscale('log')
         if xmin is not None and xmax is not None:
             ax.set_xlim(xmin,xmax)
         p = dendrogram.plotter()
@@ -169,6 +168,7 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
                 cnorm = mpl.colors.Normalize(vmin=v0, vmax=v1)
             scaled_v = cnorm(cat[type][st.idx])
             p.plot_tree(ax, structure=[st], colors=cmap(scaled_v), subtree=False)
+        ax.set_yscale('log')
         cax = fig.add_axes([0.93, 0.1, 0.02, 0.8])
         cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap,
              orientation='vertical', norm=cnorm)

@@ -3,3 +3,6 @@
 build
 dendroplot.egg-info
 dist
+example/dendro
+example/lte
+example/mom

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import os
-import sys
-sys.path.append(os.path.expanduser('~/Work/bin/py-package/maskmoment/'))
+# From https://github.com/tonywong94/maskmoment
 from maskmoment import maskmoment
 
 # Moment maps by dilated masking

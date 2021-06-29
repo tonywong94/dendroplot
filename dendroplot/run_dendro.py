@@ -52,7 +52,6 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111)            
-    ax.set_yscale('log')
     ax.set_xlabel('Structure')
     ax.set_ylabel('Intensity ['+hd3['BUNIT']+']')
     p = d.plotter()
@@ -64,6 +63,7 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
         p.plot_tree(ax, structure=[st], color='black', subtree=False)
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
+    ax.set_yscale('log')
     plt.savefig('plots/'+label+'_dendrogram.pdf', bbox_inches='tight')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%

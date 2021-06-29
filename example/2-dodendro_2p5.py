@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 
 import os
-import sys
-sys.path.append(os.path.expanduser('~/Work/bin/py-package/lmc_alma_analysis/'))
-from run_dendro import run_dendro
-from calc_phys_props import calc_phys_props
-from colorcode import colorcode
-from add_ltemass import add_ltemass
+from dendroplot import run_dendro
+from dendroplot.analysis import calc_phys_props
+from dendroplot.plotting import colorcode
+from dendroplot.lte import add_ltemass
 
 # Directory where input images reside.
 indir = os.getcwd()
+
 # Directory to write output files.
-outdir = os.getcwd()+'/dendro'
+outdir = os.path.join(indir, 'dendro')
 if not os.path.isdir(outdir):
     os.makedirs(outdir)
 
-redo = 'y'   # whether to regenerate dendrogram.hdf file
+redo = 'n'   # whether to regenerate dendrogram.hdf file
 
 doclouds = ['30dor']
 dolines  = ['12', '13']
@@ -26,11 +25,11 @@ for cloud in doclouds:
 
     for line in dolines:
         label = cloud+'_'+line
-        cubefile = indir + '/' + cloud+'_'+line+'CO'+type+'.image.fits.gz'
-        cub12fil = indir + '/' + cloud+'_12CO'+type+'.pbcor.fits.gz'
-        cub13fil = indir + '/' + cloud+'_13CO'+type+'.pbcor.fits.gz'
-        mom0file = indir + '/mom/' + cloud+'_'+line+'CO'+type+'_dil.mom0.fits.gz'
-        rmsfile  = indir + '/' + cloud+'_'+line+'CO'+type+'.rms.fits.gz'
+        cubefile = os.path.join(indir, cloud+'_'+line+'CO'+type+'.image.fits.gz')
+        cub12fil = os.path.join(indir, cloud+'_12CO'+type+'.pbcor.fits.gz')
+        cub13fil = os.path.join(indir, cloud+'_13CO'+type+'.pbcor.fits.gz')
+        mom0file = os.path.join(indir, 'mom', cloud+'_'+line+'CO'+type+'_dil.mom0.fits.gz')
+        rmsfile  = os.path.join(indir, cloud+'_'+line+'CO'+type+'.rms.fits.gz')
 
         criteria = ['volume']
 
