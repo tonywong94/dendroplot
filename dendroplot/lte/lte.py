@@ -64,9 +64,18 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
 
     # Load 12CO uncertainty [2D plane]
     print('\nReading {0}...'.format(inrms12))
-    t12err, hd2d = fits.getdata(inrms12, header = True)
-    print('min/max values of 12CO uncertainty are {0:.3f} and {1:.3f}'.format(
-        np.nanmin(t12err), np.nanmax(t12err)))
+#     t12err, hd2d = fits.getdata(inrms12, header = True)
+#     print('min/max values of 12CO uncertainty are {0:.3f} and {1:.3f}'.format(
+#         np.nanmin(t12err), np.nanmax(t12err)))
+    hd2d = fits.getheader(inrms12)
+    if 'datamin' in hd2d and 'datamax' in hd2d:
+        print('min/max values of 12CO uncertainty are {0:.3f} and {1:.3f}'.format(
+            hd2d['datamin'], hd2d['datamax']))
+       if hd2d['naxis'] == 3:
+            for k in list(hd2d['*3*'].keys()):
+                hd2d.remove(k)
+            for frq in list(hd2d['*frq*'].keys()):
+                hd2d.remove(frq)
 
     # Load 12CO mask [3D cube or 2D plane]
     print('\nReading {0}...'.format(inmask12))
