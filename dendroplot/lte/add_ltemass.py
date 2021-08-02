@@ -42,7 +42,10 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
     cat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
     srclist = cat['_idx'].tolist()
-    for col in ['flux12', 'flux13', 'mlte', 'e_mlte', 'siglte', 'e_siglte', 'e_mlte_alt']:
+    datcol = np.zeros(np.size(srclist))
+
+    for col in ['flux12', 'flux13', 'mlte', 'siglte', 'e_mlte', 'e_siglte', 'e_mlte_alt']:
+        print('Extracting data for column', col)
         newcol = Column(name=col, data=np.zeros(np.size(srclist)))
         
         if col == 'flux12':
@@ -68,15 +71,15 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
         elif col == 'mlte':
             data = getdata(n13cub)
             newcol.description = 'LTE mass using H2/13CO='+str(co13toh2)
+        elif col == 'siglte':
+            #data = getdata(n13cub)
+            newcol.description = 'LTE mass divided by area in pc2'
         elif col == 'e_mlte':
             data = getdata(n13cub_uc[0])
             newcol.description = 'fractional unc in mlte'
-        elif col == 'siglte':
-            data = getdata(n13cub)
-            newcol.description = 'LTE mass divided by area in pc2'
         elif col == 'e_siglte':
-            data = getdata(n13cub_uc[0])
-            newcol.description = 'fractional unc in siglte [same as e_lte]'
+            #data = getdata(n13cub_uc[0])
+            newcol.description = 'fractional unc in siglte [same as e_mlte]'
         elif col == 'e_mlte_alt':
             if len(n13cub_uc) > 1:
                 data = getdata(n13cub_uc[1])
@@ -84,25 +87,27 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
             else:
                 continue
         
-        for i, c in enumerate(srclist):
-            mask = d[c].get_mask()
-            if not col.startswith('e_'):
-                newcol[i] = np.nansum(data[np.where(mask)])
-                # nansum returns zero if all are NaN, want NaN
-                chknan = np.asarray(np.isnan(data[np.where(mask)]))
-                if chknan.all():
-                    newcol[i] = np.nan
-            else:
-                newcol[i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
+        # Can use previously read data from mlte and e_mlte for siglte and e_siglte
+        if col != 'siglte' and col != 'e_siglte':
+            for i, c in enumerate(srclist):
+                mask = d[c].get_mask()
+                if not col.startswith('e_'):
+                    datcol[i] = np.nansum(data[np.where(mask)])
+                    # nansum returns zero if all are NaN, want NaN
+                    chknan = np.asarray(np.isnan(data[np.where(mask)]))
+                    if chknan.all():
+                        datcol[i] = np.nan
+                else:
+                    datcol[i] = np.sqrt(np.nansum(data[np.where(mask)]**2)) * osamp 
 
         if col in ['flux12', 'flux13']:
             # Convert from K*pix*ch to Jy*km/s
             convfac = (1*u.K).to(u.Jy/u.deg**2, equivalencies=u.brightness_temperature(rfreq))
-            newcol *= deltav * convfac.value * (pixdeg)**2
+            newcol.data[:] = datcol * deltav * convfac.value * (pixdeg)**2
             newcol.unit = 'Jy km / s'
         else:
             # Multiply by channel width in km/s and area in cm^2 to get molecule number 
-            newcol *= deltav * pix2cm.value**2
+            newcol.data[:] = datcol * deltav * pix2cm.value**2
             # Convert from molecule number to solar masses including He
             newcol *= co13toh2 * 2 * 1.36 * const.m_p.value / const.M_sun.value
             if col == 'mlte':

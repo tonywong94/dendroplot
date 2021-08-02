@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-#rootdir = '/Volumes/FlexDrive/repository/' 
-rootdir = '/Volumes/Scratch3/tonywong/repository/' 
-
 from .pltprops import linefitting
 from scipy.stats import binned_statistic, spearmanr
 import numpy as np
@@ -15,7 +12,7 @@ from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.colors import Normalize, LogNorm
-
+import matplotlib.lines as mlines
 
 # General Scatter Plot
 def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', 
@@ -81,14 +78,14 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g',
 
 # Main program
 def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
-            indir=None, leaves=False, binned=False,
-            cmap_name='gist_rainbow', mec='white',
+            analdir=None, leaves=False, binned=False, linefit=True, binfit=False,
+            cmap_name='gist_rainbow', msize=10,
             xplot=['rad_pc'],
             yplot=['vrms_k'],
             xlims=[[-1,1.5]],
             ylims=[[-2,1.5]],
-            pltname=['rdv'], slope=[0.5], inter=[0],
-            pad  = [0.03], magmacsv='islands.sageco.csv'):
+            pltname=['rdv'], slope=[0.5], inter=[0], beam=3.5,
+            pad=[0.03], magmacsv='islands.sageco.csv'):
 
     global axes
     params = {'mathtext.default': 'regular' }          
@@ -107,27 +104,30 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
     cldtab = magmatab[keep]
 
     # Sensitivity limits
-    avgbeam = 3.5 * u.arcsec
+    avgbeam = beam * u.arcsec
     dist    = 5e4 * u.pc
     # Min radius is FWHM beam converted to rms size then scaled by 1.91
     rmstorad = 1.91
     radlim = ((avgbeam*rmstorad/np.sqrt(8*np.log(2))) * dist).to(
         u.pc, equivalencies=u.dimensionless_angles())
 
-    tab = Table(dtype=[('line', 'S2'), ('xplot', 'S10'), ('yplot', 'S10'), 
-                    ('a1', 'f4'), ('a1_err', 'f4'), ('a0', 'f4'), 
-                    ('a0_err', 'f4'), ('chi2red', 'f4'), ('eps', 'f4')])
-    for col in ['a1', 'a1_err', 'a0', 'a0_err', 'chi2red', 'eps']:
-        tab[col].format = '.2f'
+    if linefit:
+        fittab = Table(dtype=[('line', 'S2'), ('xplot', 'S10'), ('yplot', 'S10'), 
+                        ('a1', 'f4'), ('a1_err', 'f4'), ('a0', 'f4'), 
+                        ('a0_err', 'f4'), ('chi2red', 'f4'), ('eps', 'f4')])
+        for col in ['a1', 'a1_err', 'a0', 'a0_err', 'chi2red', 'eps']:
+            fittab[col].format = '.2f'
+
     # Generate plots
     for i in range(len(xplot)):
         for line in dolines:
             for type in dotypes:
                 # Plot a single x-y pair with colorcode
                 fig, axes = plt.subplots()
-                save = np.array([]).reshape(0,4)
+                merge_tbl = np.array([]).reshape(0,4)
+                myhandles = []
                 for j, clname in enumerate(clouds):
-                    dir = indir.replace('CLOUD', clname)
+                    dir = analdir.replace('CLOUD', clname)
                     if os.path.isfile(dir+clname+'_'+line+'_physprop_add.txt'):
                         infile = dir+clname+'_'+line+'_physprop_add.txt'
                     else:
@@ -145,9 +145,13 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                         else:
                             norm = LogNorm(vmin=1, vmax=100)
                         new = plot_ecsv(infile, xplot[i], yplot[i], shade=shade,
-                            zaxis=type, cmap=cmap, mark=markers[j], msize=9,
+                            zaxis=type, cmap=cmap, mark=markers[j], msize=msize,
                             zorder=i, label=clname, leaves=leaves, norm=norm)
-                        ccode = 'local'            
+                        ccode = 'local'
+                        # Dummy handle for legend
+                        hdl = mlines.Line2D([], [], color='C0', marker=markers[j], 
+                                            ls='', label=clname)
+                        myhandles.append(hdl)
                     else:   # cloud-averaged color code
                         if type == 'comean' or type == 'comax':
                             norm = Normalize(vmin=min(cldtab[type]), vmax=max(cldtab[type]))
@@ -155,10 +159,10 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                             norm = LogNorm(vmin=min(cldtab[type]), vmax=max(cldtab[type]))
                         colr=np.array(cmap(norm(cldtab[type][j])))
                         new = plot_ecsv(infile, xplot[i], yplot[i], shade=shade,
-                            col=colr, mark=markers[j], msize=9, zorder=i, 
+                            col=colr, mark=markers[j], msize=msize, zorder=i, 
                             label=clname, leaves=leaves)
                         ccode = 'global'            
-                    save = np.concatenate((save, new))
+                    merge_tbl = np.concatenate((merge_tbl, new))
                 axes.set_xlim(xlims[i][0], xlims[i][1])
                 axes.set_ylim(ylims[i][0], ylims[i][1])
                 axes.minorticks_off()
@@ -194,12 +198,12 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                         color='m', rotation=-45)
                     axes.text(-0.9, -0.6, 'Virial Eq', color='k', rotation=45)
                 # Fit a line to all points
-                sorted=np.argsort(save[:,0])
-                xdata = save[:,0][sorted]
-                ydata = save[:,1][sorted]
-                x_err = save[:,2][sorted]/np.log(10)
-                y_err = save[:,3][sorted]/np.log(10)
-                if binned == True:
+                sorted=np.argsort(merge_tbl[:,0])
+                xdata = merge_tbl[:,0][sorted]
+                ydata = merge_tbl[:,1][sorted]
+                x_err = merge_tbl[:,2][sorted]/np.log(10)
+                y_err = merge_tbl[:,3][sorted]/np.log(10)
+                if binned:
                     # Bins are based on data unless plot limits are more constrained
                     makebin = np.linspace(np.amax([xdata[0],xlims[i][0]]), 
                                 np.amin([xdata[-1],xlims[i][1]]), 10)
@@ -208,27 +212,25 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                     sig, edges, asgn = binned_statistic(xdata, ydata, statistic='std', 
                                         bins=makebin)
                     x_bins = edges[:-1] + np.diff(edges)/2
-                    axes.errorbar(x_bins, mu, yerr=sig,
+                    axes.errorbar(x_bins, mu, yerr=sig, mfc='yellow', mec='k',
                                   ls='None', marker='o', markersize=5,
-                                  c="k", ecolor='dimgray', capsize=0, zorder=11)
-#                     polyco, cov = np.polyfit(x_bins, mu, 1, w=1/sig, cov=True)
-#                     a1 = polyco[0]
-#                     a0 = polyco[1]
-#                     a1_e, a0_e = np.sqrt(np.diag(cov))
-#                     xmod = np.linspace(xlims[i][0], xlims[i][1], 10)
-#                     ymod = a1 * xmod + a0
-#                     axes.plot(xmod, ymod, linestyle='--', color='b', zorder=10)
-#                     chi2 = 0
-#                     eps = 0
-#                     a1, a1_e, a0, a0_e, chi2, eps = linefitting(x_bins, mu,
-#                         yerr=sig, xrange=xlims[i], color='b', 
-#                         parprint=parprint, prob=0.997, zorder=10)
-#                 else:
-                a1, a1_e, a0, a0_e, chi2, eps = linefitting(xdata, ydata,
-                    xerr=x_err, yerr=y_err, xrange=xlims[i], color='b', 
-                    parprint=parprint, prob=0.997, zorder=10)
-                if type == 'sp8med':
-                    tab.add_row([line, xplot[i], yplot[i], a1, a1_e, a0, a0_e, chi2, eps])
+                                  ecolor='dimgray', capsize=0, zorder=11)
+                    if binfit:
+                        polyco, cov = np.polyfit(x_bins, mu, 1, w=1/sig, cov=True)
+                        a1 = polyco[0]
+                        a0 = polyco[1]
+                        a1_e, a0_e = np.sqrt(np.diag(cov))
+                        xmod = np.linspace(xlims[i][0], xlims[i][1], 10)
+                        ymod = a1 * xmod + a0
+                        axes.plot(xmod, ymod, linestyle='--', color='g', zorder=10,
+                                  label='bin slope=$%4.2f$' % a1)
+                        print("Binned slope, intercept:", a1, a0)
+                # Fit a line to all points
+                if linefit:
+                    a1, a1_e, a0, a0_e, chi2, eps = linefitting(xdata, ydata,
+                        xerr=x_err, yerr=y_err, xlims=xlims[i], color='b', 
+                        parprint=parprint, prob=0.997, zorder=10)
+                    fittab.add_row([line, xplot[i], yplot[i], a1, a1_e, a0, a0_e, chi2, eps])
                 # Spearman correlation coefficient
                 if yplot[i].startswith('sig') and (xplot[i] == '8um_avg' 
                                                    or xplot[i].startswith('sig')):
@@ -241,12 +243,14 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                         xpos = 0.6
                     axes.text(xpos,0.02,'$r_s$={:.2f}'.format(spear),
                           size=10, color='k', ha='right', transform=axes.transAxes)
-                    ymod2 = a1*xmod + a0
-                    axes.plot(xmod, ymod2, linestyle=':', color='k', alpha=0.6)
-                    axes.text(xpos,0.07,'$a_1$=$%4.2f$' % a1, size=10, color='k',
-                          ha='right', transform=axes.transAxes)
+                    if linefit:
+                        axes.text(xpos,0.07,'$a_1$=$%4.2f$' % a1, size=10, color='k',
+                            ha='right', transform=axes.transAxes)
                 # Legend and colorbar
-                plt.legend(loc='lower right',fontsize=8,numpoints=1,markerscale=2)
+                if ccode == 'local':
+                    plt.legend(loc='lower right',fontsize=8,handles=myhandles)
+                else:
+                    plt.legend(loc='lower right',fontsize=8,numpoints=1,markerscale=2)
                 cax = fig.add_axes([pad[i]+0.7, 0.11, 0.02, 0.77])
                 formatter = ticker.LogFormatter(10, labelOnlyBase=False, minor_thresholds=(4,3))
                 if type == 'comean':
@@ -268,7 +272,7 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                 elif type == '8um_avg':
                     cbartext = 'local mean 8$\mu$m intensity [MJy/sr]'
                 elif type == 'siglum':
-                    cbartext = 'local mean $\Sigma_{mol}$ [$M_\odot$ $pc^{-2}$]'
+                    cbartext = 'local mean $\Sigma_{lum}$ [$M_\odot$ $pc^{-2}$]'
                 elif type == 'siglte':
                     cbartext = 'local mean $\Sigma_{LTE}$ [$M_\odot$ $pc^{-2}$]'
                 elif type == 'sigvir':
@@ -280,6 +284,7 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                 plt.savefig('comp_'+line+'_'+pltname[i]+'_'+type+'.pdf', 
                     bbox_inches='tight')
                 plt.close()
-    tab.write('comp_props_lfit.tex', overwrite=True)
+    if linefit:
+        fittab.write('comp_props_lfit.tex', overwrite=True)
     return
 

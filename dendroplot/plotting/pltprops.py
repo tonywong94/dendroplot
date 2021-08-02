@@ -469,8 +469,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             xlims=[[-1.5,1],     [-2,2],    [-1,3]],
             ylims=[[-2,1.5], [-1.5,4.5],    [-2,4]],
             pltname=[ 'rdv',   'dvflux','areaflux'],
-            ccode=[    True,      False,     False], 
-            colorcodes=['alpha', 'siglum', 'sigvir']):
+            ccode=None, colorcodes=['alpha', 'sigvir']):
     '''
     Generate a set of summary plots for an astrodendro run
 
@@ -514,8 +513,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     pltname : list of str
         File name identifiers for the desired plots
     ccode : list of boolean
-        Whether to generate the color coded versions of each plot
-    colorcodes :
+        Whether to generate the color coded versions of each plot.  If given, this
+        should be an array with the same length as xplot and yplot.
+    colorcodes : list of str
         Columns to plot as color codes, these can be either in 'full' catalog
         or 'physprop' catalog.
         
@@ -634,6 +634,10 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     # Plot all structures, color coded by 3rd variable and binned in quartiles
     if isinstance(colorcodes, str):
         colorcodes = [colorcodes]
+    if ccode is not None:
+        if len(ccode) != len(xplot):
+            raise IndexError('Input array ccode must match xplot in length')
+
     for i in range(len(xplot)):
         if not ccode[i]:
             continue
