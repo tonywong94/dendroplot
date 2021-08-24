@@ -60,7 +60,6 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
     ax = fig.add_subplot(111)            
-    ax.set_yscale('log')
     ax.set_xlabel('Structure')
     ax.set_ylabel('Intensity ['+hd3['BUNIT']+']')
     p = d.plotter()
@@ -72,6 +71,7 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         p.plot_tree(ax, structure=[st], color='black', subtree=False)
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
+    ax.set_yscale('log')
     plt.savefig('plots/'+label+'_dendrogram.pdf', bbox_inches='tight')
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
@@ -115,7 +115,8 @@ def run_scimes(criteria=['volume'], label='scimes', cubefile=None, mom0file=None
         tpkav[i] = np.nanmean(peakim)
     if hd3['BUNIT'].upper()=='JY/BEAM':
         omega_B = np.pi/(4*np.log(2)) * bmaj * bmin
-        convfac = (u.Jy).to(u.K, equivalencies=u.brightness_temperature(omega_B,freq))
+        convfac = (u.Jy).to(u.K, equivalencies=u.brightness_temperature(freq,
+                            beam_area=omega_B))
         tmax *= convfac
         tpkav *= convfac
     newcol = Column(tmax, name='tmax')
