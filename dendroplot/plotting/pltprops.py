@@ -574,6 +574,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             for line in text.splitlines():
                 trd.append(list(map(int, line.split('|')[1].split(','))))
     except:
+        print('Failed reading',join(indir,label+'_trunks.txt'))
         pass
     
     # Get the lists of cluster descendants and colors
@@ -583,9 +584,13 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             cld = []
             clco = []
             for line in text.splitlines():
-                cld.append(list(map(int, line.split('|')[1].split(','))))
-                clco.append(line.split()[1]) 
+                clco.append(line.split()[1])
+                if line.split('|')[1].split(',') == [' ']:
+                    cld.append([])
+                else:
+                    cld.append(list(map(int, line.split('|')[1].split(','))))
     except:
+        print('Failed reading',join(indir,label+'_clusters.txt'))
         pass
 
     # Plot histograms of selected properties.  First plot is position angle
@@ -759,39 +764,50 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         plt.savefig(join(plotdir,label+'_'+pltname[i]+'_full.pdf'), bbox_inches='tight')
         plt.close()
 
-        # --- Plot trunks or clusters and their descendants
-        clusttype = ['trunk', 'cluster']
-        for ilist, pltlist in enumerate([idsel[0], idsel[3]]):
-            if len(pltlist) > 0:
-                print('Plotting {} {}(s)'.format(len(pltlist),clusttype[ilist]))
-                fig, axes = plt.subplots(figsize=(6.4,4.8))
-                if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
-                    axes.set_aspect(0.6)
-                else:
-                    axes.set_aspect('equal')
-                sctplot( np.log10(x[pltlist]), np.log10(y[pltlist]), 
-                         xerr=xerr[pltlist]/np.log(10), yerr=yerr[pltlist]/np.log(10), 
-                         marker='s', zorder=4, cmap=cmap, ms=30)
-                colors = plt.cm.jet(np.linspace(0, 1, len(pltlist)) )
-                n_descend = 0
-                for j, tno in enumerate(pltlist):
-                    if ilist == 0:
-                        descdnts = [val for val in trd[j] if val in np.where(postive)[0]]
-                    else:
-                        descdnts = [val for val in cld[j] if val in np.where(postive)[0]]
-                    n_descend += len(descdnts)
-                    sctplot( np.log10(x[descdnts]), np.log10(y[descdnts]), 
-                             xerr=xerr[descdnts]/np.log(10), yerr=yerr[descdnts]/np.log(10), 
-                             col='w', mec=colors[j], zorder=3, ms=10, 
-                             label=clusttype[ilist]+str(tno) )
-                print('Plotting {} {} descendants'.format(n_descend,clusttype[ilist]))
-                std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
-                # Only show legend if there are 10 or fewer trunks
-                if len(idsel[0]) <= 10:
-                    plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
-                plt.savefig(join(plotdir,label+'_'+pltname[i]+'_'+clusttype[ilist]+'s.pdf'), 
-                            bbox_inches='tight')
-                plt.close()
+        # --- Plot trunks and their descendants
+        if len(idsel[0]) > 0:
+            print('Plotting {} {}(s)'.format(len(idsel[0]),'trunk'))
+            fig, axes = plt.subplots(figsize=(6.4,4.8))
+            if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+                axes.set_aspect(0.6)
+            else:
+                axes.set_aspect('equal')
+            sctplot( np.log10(x[idsel[0]]), np.log10(y[idsel[0]]), 
+                     xerr=xerr[idsel[0]]/np.log(10), yerr=yerr[idsel[0]]/np.log(10), 
+                     marker='s', zorder=4, cmap=cmap, ms=30)
+            colors = plt.cm.jet(np.linspace(0, 1, len(idsel[0])) )
+            n_descend = 0
+            for j, tno in enumerate(idsel[0]):
+                descdnts = [val for val in trd[j] if val in np.where(postive)[0]]
+                n_descend += len(descdnts)
+                sctplot( np.log10(x[descdnts]), np.log10(y[descdnts]), 
+                         xerr=xerr[descdnts]/np.log(10), yerr=yerr[descdnts]/np.log(10), 
+                         col='w', mec=colors[j], zorder=3, ms=10, 
+                         label='trunk'+str(tno) )
+            print('Plotting {} {} descendants'.format(n_descend,'trunk'))
+            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            # Only show legend if there are 10 or fewer trunks
+            if len(idsel[0]) <= 10:
+                plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
+            plt.savefig(join(plotdir,label+'_'+pltname[i]+'_trunks.pdf'), 
+                        bbox_inches='tight')
+            plt.close()
+
+        # --- Plot clusters
+        if len(idsel[3]) > 0:
+            print('Plotting {} {}(s)'.format(len(idsel[3]),'cluster'))
+            fig, axes = plt.subplots(figsize=(6.4,4.8))
+            if xplot[i] == 'rad_pc' and yplot[i].startswith('m'):
+                axes.set_aspect(0.6)
+            else:
+                axes.set_aspect('equal')
+            sctplot( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), col=clco,
+                     xerr=xerr[idsel[3]]/np.log(10), yerr=yerr[idsel[3]]/np.log(10), 
+                     marker='s', zorder=4, ms=30)
+            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
+                        bbox_inches='tight')
+            plt.close()
 
     tab.write(join(indir, label+'_lfit.tex'), overwrite=True)    
     return

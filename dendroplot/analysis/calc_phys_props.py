@@ -266,7 +266,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
     if refpos is not None:
         ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
-
+    return
 
 def refdist_redo(label='pcc_12', cubefile=None, refpos=None, 
                  outfile='_physprop_newref.txt'):
@@ -287,3 +287,4 @@ def refdist_redo(label='pcc_12', cubefile=None, refpos=None,
                   (xref-cat['x_cen'])**2 + (yref-cat['y_cen'])**2 )
         ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
         ptab.write(label+outfile, format='ascii.ecsv', overwrite=True)
+    return

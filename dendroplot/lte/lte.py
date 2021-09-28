@@ -71,7 +71,7 @@ def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = 
     if 'datamin' in hd2d and 'datamax' in hd2d:
         print('min/max values of 12CO uncertainty are {0:.3f} and {1:.3f}'.format(
             hd2d['datamin'], hd2d['datamax']))
-       if hd2d['naxis'] == 3:
+        if hd2d['naxis'] == 3:
             for k in list(hd2d['*3*'].keys()):
                 hd2d.remove(k)
             for frq in list(hd2d['*frq*'].keys()):
