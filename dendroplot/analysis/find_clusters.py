@@ -41,8 +41,8 @@ def find_clusters(label='pcc_12', criteria=['volume'], doellipse=False,
     # Prepare the cluster map
     fig, ax = plt.subplots()
     tpeak = np.amax(cubedata, axis=0)
-    vmin = np.nanmin(tpeak)*2
-    vmax = np.nanmax(tpeak)/2.
+    vmin = np.nanmin(tpeak)*1.5
+    vmax = np.nanmax(tpeak)/1.5
     im = ax.imshow(tpeak, origin='lower', cmap=plt.cm.Greys, 
                    norm=PowerNorm(gamma=0.5, vmin=vmin, vmax=vmax))
     ax.axes.get_xaxis().set_ticks([])

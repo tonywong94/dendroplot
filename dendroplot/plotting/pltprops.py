@@ -290,9 +290,9 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None):
         xmod = np.linspace(xlims[0],xlims[1],100)
         ymod = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e4/10**xmod)
         axes.plot(xmod, ymod, linestyle='-', color='g', lw=1)
-        ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
-        axes.plot(xmod, ymod2, linestyle=':', color='m', lw=1)
         if xlims[0] == -1:
+            ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
+            axes.plot(xmod, ymod2, linestyle=':', color='m', lw=1)
             axes.text(-0.9, 2.40, '$P_{ext}$ = $10^4$ cm$^{-3}$ K', ha='left',
                 color='g', rotation=-45)
             axes.text(-0.9, 0.50, '$P_{ext}$ = $10^2$ cm$^{-3}$ K', ha='left',
@@ -462,13 +462,14 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
 # -------------------------------------------------------------------------------
 
 def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2, 
-            alpha=1, cmap='jet', doline=True, parprint=False,
+            alpha=1, cmap='jet', parprint=False,
             nbin=0, lobin_col='cyan', hibin_col='salmon',
             xplot=['rad_pc',   'vrms_k','area_pc2'],
             yplot=['vrms_k',   'mlumco',  'mlumco'],
             xlims=[[-1.5,1],     [-2,2],    [-1,3]],
             ylims=[[-2,1.5], [-1.5,4.5],    [-2,4]],
             pltname=[ 'rdv',   'dvflux','areaflux'],
+            doline=[True, True, True],
             ccode=None, colorcodes=['alpha', 'sigvir']):
     '''
     Generate a set of summary plots for an astrodendro run
@@ -490,9 +491,6 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         Transparency parameter for color-coded scatter plots, between 0 and 1.
     cmap : matplotlib.colors.Colormap
         Name of the color map for color coding
-    doline : boolean
-        True to plot best-fit line and confidence band for 'full' plots.  
-        Otherwise the parameters are calculated but not plotted.
     parprint : boolean
         True to show best-fit slope and intercept in upper left corner of plot
     nbin : int
@@ -512,6 +510,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         The y limits of the desired plots
     pltname : list of str
         File name identifiers for the desired plots
+    doline : list of boolean
+        True to plot best-fit line and confidence band for full & cluster plots.  
+        Otherwise the parameters are calculated but not plotted.
     ccode : list of boolean
         Whether to generate the color coded versions of each plot.  If given, this
         should be an array with the same length as xplot and yplot.
@@ -520,6 +521,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         or 'physprop' catalog.
         
     '''
+
+    # ------ Get the resolution limits
     deltav  = dvkms  * u.km / u.s
     avgbeam = beam   * u.arcsec
     dist    = distpc * u.pc
@@ -541,7 +544,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         except OSError:
             print('Unable to create output directory',plotdir)
 
-    # Read the input files
+    # ------ Read the input files
     cat = Table.read(catalog, format='ascii.ecsv')
     pcatalog = catalog.replace('_full_catalog.txt','_physprop_add.txt')
     label = (os.path.basename(catalog)).replace('_full_catalog.txt','')
@@ -593,8 +596,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         print('Failed reading',join(indir,label+'_clusters.txt'))
         pass
 
-    # Plot histograms of selected properties.  First plot is position angle
-    # and is drawn linearly, subsequent plots are logarithmic.
+    # ------ Plot histograms of selected properties.  
+    # First plot is PA and is drawn linearly, subsequent plots are logarithmic.
     hist_struct = ['trunks', 'branches', 'leaves']
     hist_plots  = ['position_angle', 'flux', 'mvir']
     for i, histcol in enumerate(hist_plots):
@@ -636,7 +639,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         plt.savefig(join(plotdir,label+'_'+histcol+'.pdf'), bbox_inches='tight')
         plt.close()
 
-    # Plot all structures, color coded by 3rd variable and binned in quartiles
+    # ------ Plot all structures, color coded by 3rd variable and binned in quartiles
     if isinstance(colorcodes, str):
         colorcodes = [colorcodes]
     if ccode is not None:
@@ -674,14 +677,14 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                         bbox_inches='tight')
             plt.close()
 
-    # Output table with line fitting parameters
+    # ------ Output table with line fitting parameters
     tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('a', 'f4'), 
                     ('a_err', 'f4'), ('b', 'f4'), ('b_err', 'f4'), 
                     ('chi2red', 'f4'), ('eps', 'f4')])
     for col in ['a', 'a_err', 'b', 'b_err', 'chi2red', 'eps']:
         tab[col].format = '.2f'
 
-    # Main set of scatter plots, as requested by user
+    # ------ Main set of scatter plots, as requested by user
     for i in range(len(xplot)):
         print('\nPlotting',xplot[i],'and',yplot[i])
         x, y = [pcat[xplot[i]], pcat[yplot[i]]]
@@ -741,7 +744,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
                 np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
                 yerr=yerr[unshade]/np.log(10), color='b',
-                doline=doline, parprint=parprint, prob=.997, xlims=xlims[i])
+                doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
             tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
         if pltname[i] == 'rdv':
             a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
@@ -804,6 +807,16 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             sctplot( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), col=clco,
                      xerr=xerr[idsel[3]]/np.log(10), yerr=yerr[idsel[3]]/np.log(10), 
                      marker='s', zorder=4, ms=30)
+            cl_arry = np.array(idsel[3])
+            unshade = cl_arry[np.where((x[idsel[3]]>xmin) & (y[idsel[3]]>ymin))[0]]
+            print('Exclude from fit {} clusters below resolution limit'.format(
+                  len(idsel[3])-len(unshade)))
+            if len(x[unshade]) > 2:
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
+                    np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
+                    yerr=yerr[unshade]/np.log(10), color='b',
+                    doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
+                tab.add_row([label, pltname[i]+'_clust', a1, a1_e, a0, a0_e, chi2, eps])
             std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
                         bbox_inches='tight')
