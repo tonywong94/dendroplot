@@ -289,6 +289,8 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None):
     if axvar[0].startswith('sig') and axvar[1] == 'sigvir':
         xmod = np.linspace(xlims[0],xlims[1],100)
         ymod = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e4/10**xmod)
+        ymod6 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e6/10**xmod)
+        axes.plot(xmod, ymod6, linestyle='-.', color='brown', lw=1)
         axes.plot(xmod, ymod, linestyle='-', color='g', lw=1)
         if xlims[0] == -1:
             ymod2 = np.log10(10**xmod + (20/(3*np.pi*21.1))*1.e2/10**xmod)
@@ -306,6 +308,11 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None):
         else:
             ymod = xmod
         axes.plot(xmod, ymod, linestyle=':', color='k')
+        if axvar[0].startswith('sig') and axvar[1] == 'sigvir':
+            axes.text(0.05, 0.1, r'$\alpha$ > 1', ha='left',
+                color='k', rotation=45, transform=axes.transAxes)            
+            axes.text(0.1, 0.05, r'$\alpha$ < 1', ha='left',
+                color='k', rotation=45, transform=axes.transAxes)            
     # Set plot limits and labels
     axes.set_xlim(xlims[0], xlims[1])
     axes.set_ylim(ylims[0], ylims[1])
@@ -469,7 +476,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             xlims=[[-1.5,1],     [-2,2],    [-1,3]],
             ylims=[[-2,1.5], [-1.5,4.5],    [-2,4]],
             pltname=[ 'rdv',   'dvflux','areaflux'],
-            doline=[True, True, True],
+            doline=[True, True, True], resolve_output=False,
             ccode=None, colorcodes=['alpha', 'sigvir']):
     '''
     Generate a set of summary plots for an astrodendro run
@@ -519,7 +526,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     colorcodes : list of str
         Columns to plot as color codes, these can be either in 'full' catalog
         or 'physprop' catalog.
-        
+    resolve_output: boolean
+        Set to true to output well-resolved structures to a new output file.
+        Default is False.
     '''
 
     # ------ Get the resolution limits
@@ -596,7 +605,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         print('Failed reading',join(indir,label+'_clusters.txt'))
         pass
 
-    # ------ Plot histograms of selected properties.  
+    # ------ Plot histograms of selected properties.  No resolution filtering!
     # First plot is PA and is drawn linearly, subsequent plots are logarithmic.
     hist_struct = ['trunks', 'branches', 'leaves']
     hist_plots  = ['position_angle', 'flux', 'mvir']
@@ -649,7 +658,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     for i in range(len(xplot)):
         if not ccode[i]:
             continue
-        print('\nPlotting',xplot[i],'and',yplot[i])
+        print('\n*** Plotting',xplot[i],'and',yplot[i])
         x, y = [pcat[xplot[i]], pcat[yplot[i]]]
         postive = (x>0) & (y>0)
         for j in range(len(colorcodes)):
@@ -678,15 +687,16 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             plt.close()
 
     # ------ Output table with line fitting parameters
-    tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('a', 'f4'), 
-                    ('a_err', 'f4'), ('b', 'f4'), ('b_err', 'f4'), 
+    tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('npts', 'i4'), 
+                    ('a', 'f4'), ('a_err', 'f4'), ('b', 'f4'), ('b_err', 'f4'), 
                     ('chi2red', 'f4'), ('eps', 'f4')])
     for col in ['a', 'a_err', 'b', 'b_err', 'chi2red', 'eps']:
         tab[col].format = '.2f'
 
     # ------ Main set of scatter plots, as requested by user
     for i in range(len(xplot)):
-        print('\nPlotting',xplot[i],'and',yplot[i])
+
+        print('\n*** Plotting',xplot[i],'and',yplot[i])
         x, y = [pcat[xplot[i]], pcat[yplot[i]]]
         if 'e_'+xplot[i] in pcat.keys():
             xerr = pcat['e_'+xplot[i]]
@@ -696,23 +706,34 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             yerr = pcat['e_'+yplot[i]]
         else:
             yerr = y*0 + 0.1
-        # --- Must be positive to take logarithm
-        postive = (x>0) & (y>0) & (xerr>0) & (yerr>0)
+
+        # --- Select points for display: default is all positive values
+        dodisp = (x>0) & (y>0) & (xerr>0) & (yerr>0)
+        print('{} points selected for display'.format(np.count_nonzero(dodisp)))
+        # --- Exclude unresolved pts from display and fit when one axis is a virial quantity
+        if 'vir' in xplot[i] or 'vir' in yplot[i] or 'alpha' in xplot[i] or 'alpha' in yplot[i]:
+            print('Exclude unresolved points since plotting virial quantity')
+            dodisp = dodisp & (
+                 pcat['rad_pc'] > shade['rad_pc']) & (
+                 pcat['vrms_k'] > shade['vrms_k']) & (
+                 pcat['area_pc2'] > shade['area_pc2'])
+            print('{} points selected for display'.format(np.count_nonzero(dodisp)))
+            dofit = dodisp
+        else:    # display unresolved points but exclude from line fitting
+            dofit = dodisp
+            if xplot[i] in shade.keys():
+                print('Excluding points from {} below {}'.format(xplot[i],shade[xplot[i]]))
+                dofit = dofit & (x > shade[xplot[i]])
+            if yplot[i] in shade.keys():
+                print('Excluding points from {} below {}'.format(yplot[i],shade[yplot[i]]))
+                dofit = dofit & (y > shade[yplot[i]])
+            
         # --- Restrict indices of subsets to positive values
         idsel = idc[:]
+        idfit = idc[:]
         for j in range(4):
-            idsel[j] = [val for val in idc[j] if val in np.where(postive)[0]]
-        # --- Exclude unresolved points from line fitting
-        xmin = ymin = 0
-        if xplot[i] in shade.keys():
-            print('Excluding points from {} below {}'.format(xplot[i],shade[xplot[i]]))
-            if shade[xplot[i]] > 0:
-                xmin = shade[xplot[i]]
-        if yplot[i] in shade.keys():
-            print('Excluding points from {} below {}'.format(yplot[i],shade[yplot[i]]))
-            if shade[yplot[i]] > 0:
-                ymin = shade[yplot[i]]
-        unshade = (x>xmin) & (y>ymin) & (xerr>0) & (yerr>0)
+            idsel[j] = [val for val in idc[j] if val in np.where(dodisp)[0]]
+            idfit[j] = [val for val in idc[j] if val in np.where(dofit)[0]]
 
         # --- Plot trunks, branches, and leaves together
         fig, axes = plt.subplots(figsize=(6.4,4.8))
@@ -740,24 +761,24 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                  xerr=xerr[idsel[2]]/np.log(10), yerr=yerr[idsel[2]]/np.log(10), 
                  col='green', marker='o', mec='k', ms=15, zorder=3, label='leaves' )
         # Plot the best-fitting line and confidence interval
-        if len(x[unshade]) > 2:
-            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
-                np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
-                yerr=yerr[unshade]/np.log(10), color='b',
+        if len(x[dofit]) > 2:
+            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[dofit]), 
+                np.log10(y[dofit]), xerr=xerr[dofit]/np.log(10), 
+                yerr=yerr[dofit]/np.log(10), color='b',
                 doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
-            tab.add_row([label, pltname[i], a1, a1_e, a0, a0_e, chi2, eps])
+            tab.add_row([label, pltname[i], len(x[dofit]), a1, a1_e, a0, a0_e, chi2, eps])
         if pltname[i] == 'rdv':
-            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[postive]), 
-                np.log10(y[postive]), xerr=xerr[postive]/np.log(10), 
-                yerr=yerr[postive]/np.log(10), color='b',
+            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[dodisp]), 
+                np.log10(y[dodisp]), xerr=xerr[dodisp]/np.log(10), 
+                yerr=yerr[dodisp]/np.log(10), color='b',
                 doline=False, parprint=False)
-            tab.add_row([label, pltname[i]+'all', a1, a1_e, a0, a0_e, chi2, eps])
+            tab.add_row([label, pltname[i]+'all', len(x[dodisp]), a1, a1_e, a0, a0_e, chi2, eps])
         # Plot the binned values if nbin > 0
         if nbin > 0:
-            ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[postive]), 
-                np.log10(y[postive]), statistic='mean', bins=nbin, range=xlims[i])
-            ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[postive]), 
-                np.log10(y[postive]), statistic='std', bins=nbin, range=xlims[i])
+            ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[dodisp]), 
+                np.log10(y[dodisp]), statistic='mean', bins=nbin, range=xlims[i])
+            ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[dodisp]), 
+                np.log10(y[dodisp]), statistic='std', bins=nbin, range=xlims[i])
             xbin = 0.5*(xbinedge[1:]+xbinedge[:-1])
             plt.errorbar(xbin, ymean, yerr=ystd, ecolor='orange', marker='o', 
                          ls='', mfc='yellow', mec='orange', zorder=10)
@@ -781,7 +802,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             colors = plt.cm.jet(np.linspace(0, 1, len(idsel[0])) )
             n_descend = 0
             for j, tno in enumerate(idsel[0]):
-                descdnts = [val for val in trd[j] if val in np.where(postive)[0]]
+                descdnts = [val for val in trd[j] if val in np.where(dodisp)[0]]
                 n_descend += len(descdnts)
                 sctplot( np.log10(x[descdnts]), np.log10(y[descdnts]), 
                          xerr=xerr[descdnts]/np.log(10), yerr=yerr[descdnts]/np.log(10), 
@@ -807,21 +828,27 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             sctplot( np.log10(x[idsel[3]]), np.log10(y[idsel[3]]), col=clco,
                      xerr=xerr[idsel[3]]/np.log(10), yerr=yerr[idsel[3]]/np.log(10), 
                      marker='s', zorder=4, ms=30)
-            cl_arry = np.array(idsel[3])
-            unshade = cl_arry[np.where((x[idsel[3]]>xmin) & (y[idsel[3]]>ymin))[0]]
-            print('Exclude from fit {} clusters below resolution limit'.format(
-                  len(idsel[3])-len(unshade)))
-            if len(x[unshade]) > 2:
-                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[unshade]), 
-                    np.log10(y[unshade]), xerr=xerr[unshade]/np.log(10), 
-                    yerr=yerr[unshade]/np.log(10), color='b',
+            if len(x[idfit[3]]) > 2:
+                a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[idfit[3]]), 
+                    np.log10(y[idfit[3]]), xerr=xerr[idfit[3]]/np.log(10), 
+                    yerr=yerr[idfit[3]]/np.log(10), color='b',
                     doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
-                tab.add_row([label, pltname[i]+'_clust', a1, a1_e, a0, a0_e, chi2, eps])
+                tab.add_row([label, pltname[i]+'_clust', len(x[idfit[3]]), a1, a1_e, 
+                            a0, a0_e, chi2, eps])
             std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
                         bbox_inches='tight')
             plt.close()
 
+    # ------ Write output files
     tab.write(join(indir, label+'_lfit.tex'), overwrite=True)    
+    if resolve_output:
+        mask = ((pcat['rad_pc'] > shade['rad_pc']) & (pcat['vrms_k'] > shade['vrms_k'])
+                & (pcat['area_pc2'] > shade['area_pc2']))
+        print('Outputting {} out of {} dendros above resolution limits'.format(
+              len(pcat[mask]), len(pcat)))
+        pcat_out = catalog.replace('_full_catalog.txt','_physprop_resolve.txt')
+        pcat[mask].write(pcat_out, format='ascii.ecsv', overwrite=True)
+
     return
 
