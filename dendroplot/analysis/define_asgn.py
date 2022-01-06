@@ -40,7 +40,7 @@ def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False)
         new_header.set('BUNIT','Index')
         hdu = fits.PrimaryHDU(asgn)
         hdu.header = new_header
-        hdu.header['DATAMIN'] = 0
+        hdu.header['DATAMIN'] = -1
         hdu.header['DATAMAX'] = len(d) - 1
         hdu.writeto(label_out+'.asgn.fits.gz')
         print('Wrote assignment cube to ', label_out)
