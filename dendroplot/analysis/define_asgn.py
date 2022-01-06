@@ -6,35 +6,60 @@ from astropy.io import fits
 from astropy.io.fits import getheader, getdata
 import os
 
-def define_asgn(image,dendrogram,label_out='',write=True):
+def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False):
     '''
     PURPOSE: Writes and returns a 3D fits file with the index from the dendrogram as the BVALUE
-        Required keywords:
+        Required parameters:
             image: location of fits cube
-            dendrogram: location of dendrogram hdf5 file
+            dendrogram: string/location of dendrogram hdf5 file
         Optional keywords:
             label_out: string to save assignment cube. automatically adds .asgn.fits.gz to end of string, 
-                        defaults to 'current working directory + assignment_cube.asgn.fits.gz' 
+                       defaults to {current working directory}+'assignment_cube.asgn.fits.gz' 
             write: set to False to prevent writing fits file
+            check_structures: set to True to check if all of the structures in the dendrogram have
+                              been written to the assignment cube (will take a long time for large dendrograms)
     '''
     if label_out == '':
         label_out = os.getcwd()+'/assignment_cube'
     d = Dendrogram.load_from(dendrogram)
     cube, hd3 = getdata(image, header=True)
-    #alternatively, we only need to load the header:
-    #hd3 = getheader(image)
-    #asgn = np.ones((hd3['NAXIS3'], hd3['NAXIS2'], hd3['NAXIS1'])).astype(np.float32)
-    asgn = np.ones(cube.shape).astype(np.float32)
-    asgn[:] = np.NaN
-    for j in range(len(d)):
-        if j % 10 == 1:
-            print("Adding indices for structure {} to assignment cube".format(j))
-        asgn[d[j].get_mask(shape = asgn.shape,subtree=False)] = d[j].idx
+    asgn = np.ones(cube.shape).astype(np.int)
+    asgn *= -1
+    def recursive_structures(trunks):
+        for trunk in trunks:
+            j = trunk.idx
+            asgn[d[j].get_mask(shape=asgn.shape,subtree=False)] = j
+            if len(trunk.children) > 0:
+                recursive_structures(trunk.children)
+    trunks = d.trunk
+    recursive_structures(trunks)
+    if check_structures:
+        all_structures_present(asgn, d)
     if write:
         new_header = hd3
         new_header.set('BUNIT','Index')
         hdu = fits.PrimaryHDU(asgn)
         hdu.header = new_header
+        hdu.header['DATAMIN'] = 0
+        hdu.header['DATAMAX'] = len(d) - 1
         hdu.writeto(label_out+'.asgn.fits.gz')
-        print('Wrote assignment cube to ',label_out)
+        print('Wrote assignment cube to ', label_out)
     return asgn
+
+def all_structures_present(asgn, dendrogram):
+    '''
+    PURPOSE: Check if all structures in the dendrogram are present in the assignment array
+        Required parameters:
+            asgn: assignment array
+            dendrogram: Dendrogram object
+    '''
+    num = 0
+    for i in range(len(dendrogram)):
+        if len(np.where(asgn == i)[0]) > 0:
+            num += 1
+    if num != len(dendrogram):
+        print('not all structures present in asgn cube')
+        return False
+    else:
+        print('all structures present in asgn cube')
+        return True
