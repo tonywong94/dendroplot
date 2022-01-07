@@ -53,10 +53,7 @@ def all_structures_present(asgn, dendrogram):
             asgn: assignment array
             dendrogram: Dendrogram object
     '''
-    num = 0
-    for i in range(len(dendrogram)):
-        if len(np.where(asgn == i)[0]) > 0:
-            num += 1
+    num = len(np.unique(asgn[asgn > -1]))
     if num != len(dendrogram):
         print('not all structures present in asgn cube')
         return False
