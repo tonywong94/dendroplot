@@ -2,8 +2,7 @@
 
 import numpy as np
 from numpy.random import randint
-from scipy import stats
-from scipy import odr
+from scipy import stats, odr
 import os
 from os.path import join
 import re
@@ -108,7 +107,7 @@ def sctplot(xdata, ydata, xerr=None, yerr=None, zdata=None, cmap=None,
 
 def color_code_bin(x, y, z, xerr=None, yerr=None, lobin=25, lobin_col='cyan', 
             hibin=75, hibin_col='salmon', ms=6, xlims=None, nbin=8, binms=8,
-            colname=None, alpha=None, cmap='jet', axes=None, zlog=False):
+            colname=None, alpha=None, cmap='jet', axes=None, zlog=False, median=False):
     '''
     Color coded scatter plot with binned values in upper and lower quartiles.
 
@@ -149,6 +148,8 @@ def color_code_bin(x, y, z, xerr=None, yerr=None, lobin=25, lobin_col='cyan',
         Plot axes object
     zlog : boolean
         True if z-values are logarithmic, used for labeling colorbar only.
+    median : boolean
+        True to also plot binned medians as gray steps
     '''
     if axes is None:
         axes = plt.gca()
@@ -168,19 +169,40 @@ def color_code_bin(x, y, z, xerr=None, yerr=None, lobin=25, lobin_col='cyan',
     if nbin > 0:
         if xlims is None:
             xlims = axes.get_xlim()
+        ylocnt, xbinedge, _ = stats.binned_statistic(x[z < q1], y[z < q1],
+            statistic='count', bins=nbin, range=xlims)
         ylomean, xbinedge, _ = stats.binned_statistic(x[z < q1], y[z < q1],
             statistic='mean', bins=nbin, range=xlims)
         ylostd, xbinedge, _  = stats.binned_statistic(x[z < q1], y[z < q1],
             statistic='std', bins=nbin, range=xlims)
         xbin = 0.5*(xbinedge[1:]+xbinedge[:-1])
-        axes.errorbar(xbin, ylomean, yerr=ylostd, ecolor='k', marker='o', 
+        axes.errorbar(xbin[ylocnt>1], ylomean[ylocnt>1], yerr=ylostd[ylocnt>1], 
+                    ecolor='k', marker='o', 
                     ms=binms, ls='', mfc=lobin_col, mec='k', zorder=3)
+        if len(xbin[ylocnt>1]) > 2:
+            b, a, rval, pval, std_err = stats.linregress(xbin[ylocnt>1], ylomean[ylocnt>1])
+            print("Lower quartile fit: {:.2f} + x*({:.2f}+/-{:.2f})".format(
+                   a, b, std_err))
+            #plt.plot(xbin[ylocnt>1], a+b*xbin[ylocnt>1], 'r-', linewidth=3)
+        yhicnt, xbinedge, _ = stats.binned_statistic(x[z > q2], y[z > q2],
+            statistic='count', bins=nbin, range=xlims)
         yhimean, xbinedge, _ = stats.binned_statistic(x[z > q2], y[z > q2],
             statistic='mean', bins=nbin, range=xlims)
         yhistd, xbinedge, _  = stats.binned_statistic(x[z > q2], y[z > q2],
             statistic='std', bins=nbin, range=xlims)
-        axes.errorbar(xbin, yhimean, yerr=yhistd, ecolor='k', marker='o', 
+        axes.errorbar(xbin[yhicnt>1], yhimean[yhicnt>1], yerr=yhistd[yhicnt>1], 
+                    ecolor='k', marker='o', 
                     ms=binms, ls='', mfc=hibin_col, mec='k', zorder=3)
+        if len(xbin[yhicnt>1]) > 2:
+            b, a, rval, pval, std_err = stats.linregress(xbin[yhicnt>1], yhimean[yhicnt>1])
+            print("Upper quartile fit: {:.2f} + x*({:.2f}+/-{:.2f})".format(
+                   a, b, std_err))
+            #plt.plot(xbin[yhicnt>1], a+b*xbin[yhicnt>1], 'b-', linewidth=3)
+        if median:
+            ymedian, xbinedge, _ = stats.binned_statistic(x, y,
+                statistic='median', bins=nbin, range=xlims)
+            axes.step(xbinedge , np.append(ymedian, ymedian[-1]), where='post', ls='-', 
+                      color='grey', linewidth=4, alpha=0.5, zorder=3)
         # Colorbar annotations
         axis_to_data = cb.ax.transAxes + cb.ax.transData.inverted()
         data_to_axis = axis_to_data.inverted()
@@ -648,43 +670,14 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         plt.savefig(join(plotdir,label+'_'+histcol+'.pdf'), bbox_inches='tight')
         plt.close()
 
-    # ------ Plot all structures, color coded by 3rd variable and binned in quartiles
+    # ------ Get color code requests
     if isinstance(colorcodes, str):
         colorcodes = [colorcodes]
     if ccode is not None:
         if len(ccode) != len(xplot):
             raise IndexError('Input array ccode must match xplot in length')
-
-    for i in range(len(xplot)):
-        if not ccode[i]:
-            continue
-        print('\n*** Plotting',xplot[i],'and',yplot[i])
-        x, y = [pcat[xplot[i]], pcat[yplot[i]]]
-        postive = (x>0) & (y>0)
-        for j in range(len(colorcodes)):
-            fig, axes = plt.subplots(figsize=(6.4,4.8))
-            axes.set_aspect('equal')
-            print('Relation will be color coded by',colorcodes[j])
-            if colorcodes[j] not in cat.keys() and colorcodes[j] not in pcat.keys():
-                continue
-            if colorcodes[j] in cat.keys():
-                zcode = cat[colorcodes[j]][postive]
-                zlog = False
-            elif colorcodes[j] in ['axratio', 'refdist']:
-                zcode = pcat[colorcodes[j]][postive]
-                zlog = False
-            else:
-                zcode = np.log10(pcat[colorcodes[j]][postive])
-                zlog = True
-            color_code_bin(np.log10(x[postive]), np.log10(y[postive]), zcode, 
-                           colname=colorcodes[j], alpha=alpha, cmap=cmap, axes=axes,
-                           lobin_col=lobin_col, hibin_col=hibin_col, xlims=xlims[i], 
-                           zlog=zlog, nbin=nbin)
-            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
-            shortname = re.sub('_', '', colorcodes[j])
-            plt.savefig(join(plotdir,label+'_'+pltname[i]+'_'+shortname+'.pdf'), 
-                        bbox_inches='tight')
-            plt.close()
+    else:
+        ccode = np.full_like(xplot, False, dtype=bool)
 
     # ------ Output table with line fitting parameters
     tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('npts', 'i4'), 
@@ -840,6 +833,34 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                         bbox_inches='tight')
             plt.close()
 
+        # ------ Plot all structures, color coded by 3rd variable and binned in quartiles
+        if not ccode[i]:
+            continue
+        for j in range(len(colorcodes)):
+            fig, axes = plt.subplots(figsize=(6.4,4.8))
+            axes.set_aspect('equal')
+            print('Relation will be color coded by',colorcodes[j])
+            if colorcodes[j] not in cat.keys() and colorcodes[j] not in pcat.keys():
+                continue
+            if colorcodes[j] in cat.keys():
+                zcode = cat[colorcodes[j]][dodisp]
+                zlog = False
+            elif colorcodes[j] in ['axratio', 'refdist']:
+                zcode = pcat[colorcodes[j]][dodisp]
+                zlog = False
+            else:
+                zcode = np.log10(pcat[colorcodes[j]][dodisp])
+                zlog = True
+            color_code_bin(np.log10(x[dodisp]), np.log10(y[dodisp]), zcode, 
+                           colname=colorcodes[j], alpha=alpha, cmap=cmap, axes=axes,
+                           lobin_col=lobin_col, hibin_col=hibin_col, xlims=xlims[i], 
+                           zlog=zlog, nbin=nbin)
+            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            shortname = re.sub('_', '', colorcodes[j])
+            plt.savefig(join(plotdir,label+'_'+pltname[i]+'_'+shortname+'.pdf'), 
+                        bbox_inches='tight')
+            plt.close()
+
     # ------ Write output files
     tab.write(join(indir, label+'_lfit.tex'), overwrite=True)    
     if resolve_output:
@@ -849,6 +870,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
               len(pcat[mask]), len(pcat)))
         pcat_out = catalog.replace('_full_catalog.txt','_physprop_resolve.txt')
         pcat[mask].write(pcat_out, format='ascii.ecsv', overwrite=True)
+        cat_out = catalog.replace('_full_catalog.txt','_cat_resolve.txt')
+        cat[mask].write(cat_out, format='ascii.ecsv', overwrite=True)
 
     return
 
