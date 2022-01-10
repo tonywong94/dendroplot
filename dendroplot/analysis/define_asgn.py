@@ -6,7 +6,8 @@ from astropy.io import fits
 from astropy.io.fits import getheader, getdata
 import os
 
-def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False):
+def define_asgn(image,dendrogram, label_out='', write=True, dtype=np.short,
+                check_structures=False):
     '''
     PURPOSE: Writes and returns a 3D fits file with the index from the dendrogram as the BVALUE
         Required parameters:
@@ -16,6 +17,7 @@ def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False)
             label_out: string to save assignment cube. automatically adds .asgn.fits.gz to end of string, 
                        defaults to {current working directory}+'assignment_cube.asgn.fits.gz' 
             write: set to False to prevent writing fits file
+            dtype: data type for assignment cube (default is np.short)
             check_structures: set to True to check if all of the structures in the dendrogram have
                               been written to the assignment cube (will take a long time for large dendrograms)
     '''
@@ -23,7 +25,7 @@ def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False)
         label_out = os.getcwd()+'/assignment_cube'
     d = Dendrogram.load_from(dendrogram)
     cube, hd3 = getdata(image, header=True)
-    asgn = np.ones(cube.shape).astype(np.int)
+    asgn = np.ones(cube.shape).astype(dtype)
     asgn *= -1
     def recursive_structures(trunks):
         for trunk in trunks:
@@ -38,11 +40,12 @@ def define_asgn(image,dendrogram,label_out='',write=True,check_structures=False)
     if write:
         new_header = hd3
         new_header.set('BUNIT','Index')
+        del new_header['history']
         hdu = fits.PrimaryHDU(asgn)
         hdu.header = new_header
         hdu.header['DATAMIN'] = -1
         hdu.header['DATAMAX'] = len(d) - 1
-        hdu.writeto(label_out+'.asgn.fits.gz')
+        hdu.writeto(label_out+'.asgn.fits.gz', overwrite=True)
         print('Wrote assignment cube to ', label_out)
     return asgn
 
