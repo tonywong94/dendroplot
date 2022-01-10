@@ -60,12 +60,14 @@ def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
     if lognorm:
         if (v0<=0): v0 = 1e-2
         if (v1<=0): v1 = 1.
-        tick0 = np.ceil(np.log10(v0))
+        tick0 = np.floor(np.log10(v0))
         tick1 = np.ceil(np.log10(v1))
         pow = np.arange(tick0, tick1, 1)
         ticks=[]
         for j in pow:
-            ticks.extend([10**j, 2*10**j, 5*10**j])
+            for tscale in [1, 2, 5]:
+                if v0 <= tscale*10**j and v1 >= tscale*10**j:
+                    ticks.extend([tscale*10**j])
         ticklab = ["%g" % val for val in ticks]
     else:
         dex = 10**np.floor(np.log10(abs(v1-v0)))
