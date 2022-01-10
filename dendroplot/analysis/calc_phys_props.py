@@ -264,7 +264,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=400, efloor=0,
         ancferr = ancrms / ancmean
         ptab['e_'+anclabel] = Column(ancferr)
     if refpos is not None:
-        ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
+        ptab['refdist'] = Column(refdist, description='angular offset from '+str(refpos))
     ptab.write(label+'_physprop.txt', format='ascii.ecsv', overwrite=True)
     return
 
@@ -285,6 +285,6 @@ def refdist_redo(label='pcc_12', cubefile=None, refpos=None,
         print('Ref pixel is',xref,yref)
         refdist = abs(cdelt2/u.pix) * np.sqrt(
                   (xref-cat['x_cen'])**2 + (yref-cat['y_cen'])**2 )
-        ptab['refdist'] = Column(refdist, description='distance from '+str(refpos))
+        ptab['refdist'] = Column(refdist, description='angular offset from '+str(refpos))
         ptab.write(label+outfile, format='ascii.ecsv', overwrite=True)
     return
