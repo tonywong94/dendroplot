@@ -204,17 +204,15 @@ def color_code_bin(x, y, z, xerr=None, yerr=None, lobin=25, lobin_col='cyan',
             axes.step(xbinedge , np.append(ymedian, ymedian[-1]), where='post', ls='-', 
                       color='grey', linewidth=4, alpha=0.5, zorder=3)
         # Colorbar annotations
-        axis_to_data = cb.ax.transAxes + cb.ax.transData.inverted()
-        data_to_axis = axis_to_data.inverted()
-        #cb.ax.axhline( y=q1, c=lobin_col, linewidth=4 )
-        dnarrow = data_to_axis.transform([q1,q1])[0]
-        cb.ax.errorbar( 0.5, dnarrow, yerr=0.03, color=lobin_col, uplims=True,
-                         elinewidth=2, ecolor='k', marker='o', mec='k', ms=binms,
+        dnarrow = cb.ax.transLimits.transform([q1,q1])
+        print('dnarrow:', dnarrow)
+        cb.ax.errorbar( 0.5, dnarrow[1], yerr=0.04, color=lobin_col, uplims=True,
+                         elinewidth=2, ecolor='grey', marker='o', mec='k', ms=binms,
                          transform=cb.ax.transAxes)
-        #cb.ax.axhline( y=q2, c=hibin_col, linewidth=4 )
-        uparrow = data_to_axis.transform([q2,q2])[0]
-        cb.ax.errorbar( 0.5, uparrow, yerr=0.03, color=hibin_col, lolims=True,
-                         elinewidth=2, ecolor='k', marker='o', mec='k', ms=binms,
+        uparrow = cb.ax.transLimits.transform([q2,q2])
+        print('uparrow:', uparrow)
+        cb.ax.errorbar( 0.5, uparrow[1], yerr=0.04, color=hibin_col, lolims=True,
+                         elinewidth=2, ecolor='grey', marker='o', mec='k', ms=binms,
                          transform=cb.ax.transAxes)
     return
 
