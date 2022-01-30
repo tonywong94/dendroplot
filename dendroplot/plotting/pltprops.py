@@ -217,7 +217,7 @@ def color_code_bin(x, y, z, xerr=None, yerr=None, lobin=25, lobin_col='cyan',
     return
 
 
-def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None):
+def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel=None):
     '''
     Generate axis labels and custom overlays on log-log plots
 
@@ -496,8 +496,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             xlims=[[-1.5,1],     [-2,2],    [-1,3]],
             ylims=[[-2,1.5], [-1.5,4.5],    [-2,4]],
             pltname=[ 'rdv',   'dvflux','areaflux'],
-            doline=[True, True, True], resolve_output=False,
-            ccode=None, colorcodes=['alpha', 'sigvir']):
+            doline=[True, True, True], 
+            panel=[None, None, None],
+            resolve_output=False, ccode=None, colorcodes=['alpha', 'sigvir']):
     '''
     Generate a set of summary plots for an astrodendro run
 
@@ -775,6 +776,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                          ls='', mfc='yellow', mec='orange', zorder=10)
         # Make the labels and draw the gray shaded boxes
         std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+        if panel[i] is not None:
+            axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig(join(plotdir,label+'_'+pltname[i]+'_full.pdf'), bbox_inches='tight')
         plt.close()
@@ -804,6 +807,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             # Only show legend if there are 10 or fewer trunks
             if len(idsel[0]) <= 10:
                 plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
+            if panel[i] is not None:
+                axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_trunks.pdf'), 
                         bbox_inches='tight')
             plt.close()
@@ -827,6 +832,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                 tab.add_row([label, pltname[i]+'_clust', len(x[idfit[3]]), a1, a1_e, 
                             a0, a0_e, chi2, eps])
             std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            if panel[i] is not None:
+                axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
                         bbox_inches='tight')
             plt.close()
