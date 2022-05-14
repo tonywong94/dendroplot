@@ -21,7 +21,7 @@ PURPOSE: Add columns to physprop.txt table based on LTE analysis.
 '''
 
 def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
-        n13cub_uc = None, distpc = 5e4, co13toh2 = 5.0e6):
+                efloor=0, n13cub_uc = None, distpc = 5e4, co13toh2 = 5.0e6):
 
     # Make the uncertainty input a list
     if not isinstance(n13cub_uc, list): n13cub_uc = [n13cub_uc]
@@ -40,11 +40,14 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
 
     # Total the LTE masses (and optionally, 12CO and 13CO fluxes)
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
-    cat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
-    srclist = cat['_idx'].tolist()
+    print('\n')
+    pcat = Table.read(label+'_physprop.txt', format='ascii.ecsv')
+    srclist = pcat['_idx'].tolist()
     datcol = np.zeros(np.size(srclist))
 
-    for col in ['flux12', 'flux13', 'mlte', 'siglte', 'e_mlte', 'e_siglte', 'e_mlte_alt']:
+    # Note that the order in which the columns are processed is important!
+    for col in ['flux12', 'flux13', 'mlte', 'siglte', 'e_mlte', 
+                'e_siglte', 'e_mlte_alt']:
         print('Extracting data for column', col)
         newcol = Column(name=col, data=np.zeros(np.size(srclist)))
         
@@ -71,14 +74,13 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
         elif col == 'mlte':
             data = getdata(n13cub)
             newcol.description = 'LTE mass using H2/13CO='+str(co13toh2)
+            newcol.unit = 'solMass'
         elif col == 'siglte':
-            #data = getdata(n13cub)
             newcol.description = 'LTE mass divided by area in pc2'
         elif col == 'e_mlte':
             data = getdata(n13cub_uc[0])
             newcol.description = 'fractional unc in mlte'
         elif col == 'e_siglte':
-            #data = getdata(n13cub_uc[0])
             newcol.description = 'fractional unc in siglte [same as e_mlte]'
         elif col == 'e_mlte_alt':
             if len(n13cub_uc) > 1:
@@ -87,8 +89,8 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
             else:
                 continue
         
-        # Can use previously read data from mlte and e_mlte for siglte and e_siglte
-        if col != 'siglte' and col != 'e_siglte':
+        # We use previously read data from mlte and e_mlte for siglte and e_siglte
+        if 'flux' in col or 'mlte' in col:
             for i, c in enumerate(srclist):
                 mask = d[c].get_mask()
                 if not col.startswith('e_'):
@@ -110,18 +112,26 @@ def add_ltemass(label = 'pcc_12', n13cub = None, i12cub = None, i13cub = None,
             newcol.data[:] = datcol * deltav * pix2cm.value**2
             # Convert from molecule number to solar masses including He
             newcol *= co13toh2 * 2 * 1.36 * const.m_p.value / const.M_sun.value
-            if col == 'mlte':
-                newcol.unit = 'solMass'
-            elif col == 'siglte':
-                newcol /= cat['area_pc2']
+            if col == 'siglte':
+                newcol /= pcat['area_pc2']
                 newcol.unit = 'solMass/pc2'
-            else:
-                newcol /= cat['mlte']
-                newcol.unit = ''
+            elif col == 'e_siglte' or 'e_mlte' in col:
+                newcol /= np.abs(pcat['mlte'])
+                #newcol.unit = ''
 
-        cat.add_column(newcol)
+        # ---- apply a floor to the fractional uncertainty if requested
+        if col.startswith('e_') and col.endswith('lte') and efloor > 0:
+            print( "Applying a minimum fractional error of {:2.3f}".format(efloor) )
+            newcol[newcol < efloor] = efloor
+
+        pcat.add_column(newcol)
       
-    #cat.pprint(show_unit=True)
-    cat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
+    #pcat.pprint(show_unit=True)
+    pcat['alphalte'] = pcat['mvir'] / pcat['mlte']
+    pcat['alphalte'].description = 'virial parameter from mvir and mlte'
+    pcat['alphalte'].unit = ''
+    pcat['e_alphalte'] = np.sqrt(pcat['e_mlte']**2 + pcat['e_mvir']**2)
+    pcat['e_alphalte'].description = 'fractional error in alphalte'
+    pcat.write(label+'_physprop_add.txt', format='ascii.ecsv', overwrite=True)
 
     return

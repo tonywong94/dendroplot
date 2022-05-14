@@ -110,6 +110,10 @@ def props_colmap(dendrogram=None, subcat=None, img=None, cubhd=None,
         datavals=subcat[type]
         if lognorm:
             datavals[datavals<=0] = np.nan
+        if (~np.isfinite(datavals)).all():
+            print('All data for {} are NaN'.format(type))
+            plt.close()
+            continue
         plt.tick_params(axis='both', which='both', bottom=False, top=False, 
             left=False, labelleft=False, labeltop=False)
         v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=datavals, 
@@ -159,7 +163,14 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
             ax.set_xlim(xmin,xmax)
         p = dendrogram.plotter()
         name = scale_values(cat=cat, type=type, cubhd=cubhd)
-        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=cat[type],
+        datavals = cat[type]
+        if lognorm:
+            datavals[datavals<=0] = np.nan
+        if (~np.isfinite(datavals)).all():
+            print('All data for {} are NaN'.format(type))
+            plt.close()
+            continue
+        v0, v1, ticks, tlbl = get_limits(vmin=vmin, vmax=vmax, datavals=datavals,
                                         lognorm=lognorm, i=i)
         print('{} vmin and vmax: {} {}'.format(type,v0,v1))
         cmap = plt.cm.get_cmap(cmapname)
@@ -206,10 +217,11 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
     img = hdu2.data
     # Load the dendrogram
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
-    print('\n')
+    print('\nOpening '+label+'_'+table+'.txt'+'\n')
     cat = Table.read(label+'_'+table+'.txt', format='ascii.ecsv')
     # Plot colored ellipses on maps
     for set in ['leaves', 'trunks', 'clusters']:
+        print('Working on', set)
         try:
             idc = []
             with open(label+'_'+set+'.txt', 'r') as f:

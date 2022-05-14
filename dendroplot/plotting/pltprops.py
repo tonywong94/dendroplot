@@ -248,7 +248,8 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel
         'siglum':'$\Sigma$, CO-based',
         'siglte':'$\Sigma$, LTE-based',
         'sigvir':'$\Sigma$, virial',
-        'rad_pc':'spherical radius',
+        'rad_pc':'equivalent raw radius',
+        'rad_pc_dcon':'equivalent radius',
         'vrms_k':'rms linewidth',
         'area_pc2':'projected area',
        }
@@ -273,12 +274,12 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel
             axes.axhspan(ylims[0], np.log10(shade[axvar[1]]), fc='lightgray', 
                          alpha=0.3, lw=0)
     # Solomon et al. size-linewidth relation
-    if axvar[0] == 'rad_pc' and axvar[1] == 'vrms_k':
+    if axvar[0].startswith('rad_') and axvar[1] == 'vrms_k':
         xmod = np.linspace(xlims[0],xlims[1],20)
         ymod = np.log10(0.72) + 0.5*xmod
         axes.plot(xmod, ymod, linestyle='-', color='r', lw=4, alpha=0.5, 
             zorder=-1)
-        axes.text((xlims[1]-0.05), (xlims[1]/2-0.15), 'S87', 
+        axes.text((xlims[1]-0.05), (xlims[1]/2-0.23), 'S87', 
             horizontalalignment='right', color='r', rotation=25)
     # Lines of constant surface density and volume density
     if axvar[0] == 'rad_pc' and axvar[1].startswith('m'):
@@ -493,12 +494,10 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             nbin=0, lobin_col='cyan', hibin_col='salmon',
             xplot=['rad_pc',   'vrms_k','area_pc2'],
             yplot=['vrms_k',   'mlumco',  'mlumco'],
-            xlims=[[-1.5,1],     [-2,2],    [-1,3]],
-            ylims=[[-2,1.5], [-1.5,4.5],    [-2,4]],
             pltname=[ 'rdv',   'dvflux','areaflux'],
-            doline=[True, True, True], 
-            panel=[None, None, None],
-            resolve_output=False, ccode=None, colorcodes=['alpha', 'sigvir']):
+            xlims=[], ylims=[], doline=[], panel=[], ccode=[],
+            physnam='physprop', resolve_output='none', 
+            colorcodes=['alpha', 'sigvir']):
     '''
     Generate a set of summary plots for an astrodendro run
 
@@ -531,25 +530,31 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     xplot : list of str
         Columns to plot on x axis, should be in 'physprop' catalog
     yplot : list of str
-        Column sto plot on y axis, should be in 'physprop' catalog
-    xlims : list of tuple
-        The x limits of the desired plots
-    ylims : list of tuple
-        The y limits of the desired plots
+        Columns to plot on y axis, should be in 'physprop' catalog
     pltname : list of str
         File name identifiers for the desired plots
+    xlims : list of tuple
+        The x limits of the desired plots.  List should match length of xplots.
+        Default: autoscale
+    ylims : list of tuple
+        The y limits of the desired plots.  List should match length of xplots.
+        Default: autoscale
     doline : list of boolean
-        True to plot best-fit line and confidence band for full & cluster plots.  
-        Otherwise the parameters are calculated but not plotted.
+        True to plot best-fit line and confidence band for full & cluster plots.
+        Default: parameters are calculated but not plotted.
     ccode : list of boolean
         Whether to generate the color coded versions of each plot.  If given, this
         should be an array with the same length as xplot and yplot.
+        Default: do not generate these
     colorcodes : list of str
         Columns to plot as color codes, these can be either in 'full' catalog
         or 'physprop' catalog.
-    resolve_output: boolean
-        Set to true to output well-resolved structures to a new output file.
-        Default is False.
+    resolve_output: string
+        Set to true to output the well-resolved structures to a new output file.
+        'raw'  : choose based on all resolution limits
+        'decon': choose based on valid deconvolved size only
+        'none' : do not output
+        Default is 'none'.
     '''
 
     # ------ Get the resolution limits
@@ -576,13 +581,13 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
 
     # ------ Read the input files
     cat = Table.read(catalog, format='ascii.ecsv')
-    pcatalog = catalog.replace('_full_catalog.txt','_physprop_add.txt')
     label = (os.path.basename(catalog)).replace('_full_catalog.txt','')
     indir = os.path.dirname(catalog)
+    pcatalog = catalog.replace('_full_catalog.txt','_'+physnam+'_add.txt')
     if os.path.isfile(pcatalog):
         pcat = Table.read(pcatalog, format='ascii.ecsv')
     else:
-        pcatalog = catalog.replace('_full_catalog.txt','_physprop.txt')
+        pcatalog = catalog.replace('_full_catalog.txt','_'+physnam+'.txt')
         pcat = Table.read(pcatalog, format='ascii.ecsv')
 
     # Get the indices of trunks, branches, leaves, and clusters.
@@ -672,11 +677,6 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
     # ------ Get color code requests
     if isinstance(colorcodes, str):
         colorcodes = [colorcodes]
-    if ccode is not None:
-        if len(ccode) != len(xplot):
-            raise IndexError('Input array ccode must match xplot in length')
-    else:
-        ccode = np.full_like(xplot, False, dtype=bool)
 
     # ------ Output table with line fitting parameters
     tab = Table(dtype=[('cloud', 'S10'), ('pltname', 'S10'), ('npts', 'i4'), 
@@ -702,25 +702,16 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         # --- Select points for display: default is all positive values
         dodisp = (x>0) & (y>0) & (xerr>0) & (yerr>0)
         print('{} points selected for display'.format(np.count_nonzero(dodisp)))
-        # --- Exclude unresolved pts from display and fit when one axis is a virial quantity
-        if 'vir' in xplot[i] or 'vir' in yplot[i] or 'alpha' in xplot[i] or 'alpha' in yplot[i]:
-            print('Exclude unresolved points since plotting virial quantity')
-            dodisp = dodisp & (
-                 pcat['rad_pc'] > shade['rad_pc']) & (
-                 pcat['vrms_k'] > shade['vrms_k']) & (
-                 pcat['area_pc2'] > shade['area_pc2'])
-            print('{} points selected for display'.format(np.count_nonzero(dodisp)))
-            dofit = dodisp
-        else:    # display unresolved points but exclude from line fitting
-            dofit = dodisp
-            if xplot[i] in shade.keys():
-                print('Excluding points from {} below {}'.format(xplot[i],shade[xplot[i]]))
-                dofit = dofit & (x > shade[xplot[i]])
-            if yplot[i] in shade.keys():
-                print('Excluding points from {} below {}'.format(yplot[i],shade[yplot[i]]))
-                dofit = dofit & (y > shade[yplot[i]])
+        # --- Display unresolved points (dodisp) but exclude from line fitting (dofit)
+        dofit = dodisp
+        if xplot[i] in shade.keys():
+            print('Excluding points from {} below {}'.format(xplot[i],shade[xplot[i]]))
+            dofit = dofit & (x > shade[xplot[i]])
+        if yplot[i] in shade.keys():
+            print('Excluding points from {} below {}'.format(yplot[i],shade[yplot[i]]))
+            dofit = dofit & (y > shade[yplot[i]])
             
-        # --- Restrict indices of subsets to positive values
+        # --- Restrict indices of subsets to positive or resolved values
         idsel = idc[:]
         idfit = idc[:]
         for j in range(4):
@@ -734,7 +725,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         else:
             axes.set_aspect('equal')
         # Get legend label
-        reg = label.split('_')[0]
+        reg  = label.split('_')[0]
         line = label.split('_')[-1]
         if line == '12':
             plt.plot([], [], ' ', label=reg+' CO')
@@ -752,32 +743,59 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         sctplot( np.log10(x[idsel[2]]), np.log10(y[idsel[2]]), 
                  xerr=xerr[idsel[2]]/np.log(10), yerr=yerr[idsel[2]]/np.log(10), 
                  col='green', marker='o', mec='k', ms=15, zorder=3, label='leaves' )
+
+        # Set the axis limits
+        try:
+            this_xlims = xlims[i]
+            this_ylims = ylims[i]
+        except IndexError:
+            this_xlims = axes.get_xlim()
+            this_ylims = axes.get_ylim()
+        # Decide whether to plot a line
+        try:
+            drawline = doline[i]
+        except IndexError:
+            drawline = False
+        # Decide whether to label as subpabel
+        try:
+            subpanel = panel[i]
+        except IndexError:
+            subpanel = None
+        # Decide whether to generate the colorcode plots
+        try:
+            this_ccode = ccode[i]
+        except IndexError:
+            this_ccode = False
+        
         # Plot the best-fitting line and confidence interval
         if len(x[dofit]) > 2:
             a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[dofit]), 
                 np.log10(y[dofit]), xerr=xerr[dofit]/np.log(10), 
                 yerr=yerr[dofit]/np.log(10), color='b',
-                doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
+                doline=drawline, parprint=parprint, prob=.997, xlims=this_xlims)
             tab.add_row([label, pltname[i], len(x[dofit]), a1, a1_e, a0, a0_e, chi2, eps])
-        if pltname[i] == 'rdv':
-            a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[dodisp]), 
-                np.log10(y[dodisp]), xerr=xerr[dodisp]/np.log(10), 
-                yerr=yerr[dodisp]/np.log(10), color='b',
-                doline=False, parprint=False)
-            tab.add_row([label, pltname[i]+'all', len(x[dodisp]), a1, a1_e, a0, a0_e, chi2, eps])
+# Old code that would do a fit including unresolved points
+#         if pltname[i] == 'rdv':
+#             a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[dodisp]), 
+#                 np.log10(y[dodisp]), xerr=xerr[dodisp]/np.log(10), 
+#                 yerr=yerr[dodisp]/np.log(10), color='b',
+#                 doline=False, parprint=False)
+#             tab.add_row([label, pltname[i]+'all', len(x[dodisp]), a1, a1_e, a0, a0_e, chi2, eps])
         # Plot the binned values if nbin > 0
         if nbin > 0:
+            ycnt, xbinedge, _ = stats.binned_statistic(np.log10(x[dodisp]),
+                np.log10(y[dodisp]), statistic='count', bins=nbin, range=this_xlims)
             ymean, xbinedge, _ = stats.binned_statistic(np.log10(x[dodisp]), 
-                np.log10(y[dodisp]), statistic='mean', bins=nbin, range=xlims[i])
+                np.log10(y[dodisp]), statistic='mean', bins=nbin, range=this_xlims)
             ystd, xbinedge, _  = stats.binned_statistic(np.log10(x[dodisp]), 
-                np.log10(y[dodisp]), statistic='std', bins=nbin, range=xlims[i])
+                np.log10(y[dodisp]), statistic='std', bins=nbin, range=this_xlims)
             xbin = 0.5*(xbinedge[1:]+xbinedge[:-1])
-            plt.errorbar(xbin, ymean, yerr=ystd, ecolor='orange', marker='o', 
-                         ls='', mfc='yellow', mec='orange', zorder=10)
+            plt.errorbar(xbin[ycnt>1], ymean[ycnt>1], yerr=ystd[ycnt>1], ecolor='orange',
+                         marker='o', ls='', mfc='yellow', mec='orange', zorder=10)
         # Make the labels and draw the gray shaded boxes
-        std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
-        if panel[i] is not None:
-            axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
+        std_overlay(pcat, [xplot[i], yplot[i]], this_xlims, this_ylims, shade)
+        if subpanel is not None:
+            axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig(join(plotdir,label+'_'+pltname[i]+'_full.pdf'), bbox_inches='tight')
         plt.close()
@@ -803,12 +821,12 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                          col='w', mec=colors[j], zorder=3, ms=10, 
                          label='trunk'+str(tno) )
             print('Plotting {} {} descendants'.format(n_descend,'trunk'))
-            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            std_overlay(pcat, [xplot[i], yplot[i]], this_xlims, this_ylims, shade)
             # Only show legend if there are 10 or fewer trunks
             if len(idsel[0]) <= 10:
                 plt.legend(loc='lower right',fontsize='x-small',scatterpoints=1)
-            if panel[i] is not None:
-                axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
+            if subpanel is not None:
+                axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_trunks.pdf'), 
                         bbox_inches='tight')
             plt.close()
@@ -828,18 +846,18 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                 a1, a1_e, a0, a0_e, chi2, eps = linefitting( np.log10(x[idfit[3]]), 
                     np.log10(y[idfit[3]]), xerr=xerr[idfit[3]]/np.log(10), 
                     yerr=yerr[idfit[3]]/np.log(10), color='b',
-                    doline=doline[i], parprint=parprint, prob=.997, xlims=xlims[i])
+                    doline=drawline, parprint=parprint, prob=.997, xlims=this_xlims)
                 tab.add_row([label, pltname[i]+'_clust', len(x[idfit[3]]), a1, a1_e, 
                             a0, a0_e, chi2, eps])
-            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
-            if panel[i] is not None:
-                axes.text(0.05,0.93, panel[i], size=12, transform=axes.transAxes)
+            std_overlay(pcat, [xplot[i], yplot[i]], this_xlims, this_ylims, shade)
+            if subpanel is not None:
+                axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
                         bbox_inches='tight')
             plt.close()
 
         # ------ Plot all structures, color coded by 3rd variable and binned in quartiles
-        if not ccode[i]:
+        if not this_ccode:
             continue
         for j in range(len(colorcodes)):
             fig, axes = plt.subplots(figsize=(6.4,4.8))
@@ -858,9 +876,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                 zlog = True
             color_code_bin(np.log10(x[dodisp]), np.log10(y[dodisp]), zcode, 
                            colname=colorcodes[j], alpha=alpha, cmap=cmap, axes=axes,
-                           lobin_col=lobin_col, hibin_col=hibin_col, xlims=xlims[i], 
+                           lobin_col=lobin_col, hibin_col=hibin_col, xlims=this_xlims, 
                            zlog=zlog, nbin=nbin)
-            std_overlay(pcat, [xplot[i], yplot[i]], xlims[i], ylims[i], shade)
+            std_overlay(pcat, [xplot[i], yplot[i]], this_xlims, this_ylims, shade)
             shortname = re.sub('_', '', colorcodes[j])
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_'+shortname+'.pdf'), 
                         bbox_inches='tight')
@@ -868,9 +886,14 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
 
     # ------ Write output files
     tab.write(join(indir, label+'_lfit.tex'), overwrite=True)    
-    if resolve_output:
-        mask = ((pcat['rad_pc'] > shade['rad_pc']) & (pcat['vrms_k'] > shade['vrms_k'])
-                & (pcat['area_pc2'] > shade['area_pc2']))
+
+    if resolve_output != 'none':
+        if resolve_output == 'raw':
+            mask = ((pcat['rad_pc'] > shade['rad_pc']) & 
+                    (pcat['vrms_k'] > shade['vrms_k']) & 
+                    (pcat['area_pc2'] > shade['area_pc2']))
+        elif resolve_output == 'decon':
+            mask = (pcat['rad_pc_dcon'] > 0) & (pcat['vrms_k'] > 0)
         print('Outputting {} out of {} dendros above resolution limits'.format(
               len(pcat[mask]), len(pcat)))
         pcat_out = catalog.replace('_full_catalog.txt','_physprop_resolve.txt')

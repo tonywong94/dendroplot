@@ -17,7 +17,7 @@ import matplotlib.lines as mlines
 # General Scatter Plot
 def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g', 
               mark='o', mec='face', zorder=-5, msize=6, linfit=None, 
-              label=None, leaves=False, **kwargs):
+              label=None, include='all', **kwargs):
     cat = Table.read(ecsvfile, format='ascii.ecsv')
     goodidx = (cat[xaxis]>0) & (cat[yaxis]>0)
     if zaxis is not None:
@@ -25,9 +25,9 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g',
     # Uncomment these 2 lines to exclude unresolved structures from fitting
     if xaxis == 'rad_pc' and yaxis == 'vrms_k':
         goodidx = goodidx & (cat[xaxis]>shade[xaxis]) & (cat[yaxis]>shade[yaxis])
-    if leaves:
-        leavelist=re.sub('physprop\w*', 'leaves', ecsvfile)
-        idcs = np.loadtxt(leavelist, dtype=int)
+    if include != 'all':
+        leavelist=re.sub('physprop\w*', include, ecsvfile)
+        idcs = np.loadtxt(leavelist, usecols=0, dtype=int)
         goodidx = np.intersect1d(idcs, np.where(goodidx)[0])
     xdata = np.log10(cat[xaxis][goodidx])
     ydata = np.log10(cat[yaxis][goodidx])
@@ -78,7 +78,7 @@ def plot_ecsv(ecsvfile, xaxis, yaxis, zaxis=None, shade=None, col='g',
 
 # Main program
 def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
-            analdir=None, leaves=False, binned=False, linefit=True, binfit=False,
+            analdir=None, include='all', binned=False, linefit=True, binfit=False,
             cmap_name='gist_rainbow', msize=10,
             xplot=['rad_pc'],
             yplot=['vrms_k'],
@@ -146,7 +146,7 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                             norm = LogNorm(vmin=1, vmax=100)
                         new = plot_ecsv(infile, xplot[i], yplot[i], shade=shade,
                             zaxis=type, cmap=cmap, mark=markers[j], msize=msize,
-                            zorder=i, label=clname, leaves=leaves, norm=norm)
+                            zorder=i, label=clname, include=include, norm=norm)
                         ccode = 'local'
                         # Dummy handle for legend
                         hdl = mlines.Line2D([], [], color='C0', marker=markers[j], 
@@ -160,7 +160,7 @@ def comp_props(dolines, dotypes=['sp8med'], clouds=None, markers=None,
                         colr=np.array(cmap(norm(cldtab[type][j])))
                         new = plot_ecsv(infile, xplot[i], yplot[i], shade=shade,
                             col=colr, mark=markers[j], msize=msize, zorder=i, 
-                            label=clname, leaves=leaves)
+                            label=clname, include=include)
                         ccode = 'global'            
                     merge_tbl = np.concatenate((merge_tbl, new))
                 axes.set_xlim(xlims[i][0], xlims[i][1])

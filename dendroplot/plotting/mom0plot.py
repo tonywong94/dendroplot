@@ -69,7 +69,7 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', distpc=5e4,
     elif hdug.header['NAXIS'] == 3:
         gaincut = hdug.data[0][slice(xrange[0],xrange[1],1),slice(yrange[0],yrange[1],1)]
     ax.contour(gaincut, transform=ax.get_transform(wcscut),
-        levels=[fov], colors='red', alpha=0.5, linewidths=1, linestyles='dashed')
+        levels=[fov], colors='red', alpha=0.5, linewidths=2, linestyles='dashed')
     # --- Plot beam and parsec scale
     axis_to_data = ax.transAxes + ax.transData.inverted()
     beamx, beamy = axis_to_data.transform([0.04,0.04])
@@ -105,23 +105,26 @@ def mom0plot(mom0file=None, fluxfile=None, cmap='hot_r', distpc=5e4,
         if labelax != 'tickonly':
             lon.set_axislabel('Right Ascension (J2000)', size=11)
             lat.set_axislabel('Declination (J2000)', size=11)
+        else:
+            lon.set_auto_axislabel(False)
+            lat.set_auto_axislabel(False)
     if label is not None:
         ax.text(0.97,0.97,label,ha='right',va='top',fontsize=13,
             transform=ax.transAxes)
     # --- Plot colorbar
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="4%", pad=cpad)
-    cbar = plt.colorbar(im, cax=cax, orientation='vertical')
-    cbar.ax.tick_params(labelsize=10)
-    cbar.ax.coords[0].set_ticks_visible(False)
-    cbar.ax.coords[0].set_ticklabel_visible(False)
-    cbar.ax.coords[0].grid(False)
-    cbar.ax.coords[1].grid(False)
-    cbar.ax.coords[1].set_ticklabel_position('r')
-    cbar.ax.coords[1].set_ticks_position('r')
-    cbar.ax.coords[1].set_axislabel_position('r')
-    if labelax == 'full':
-        cbar.set_label('Integrated Intensity [K km/s]',fontsize=12)
+#     divider = make_axes_locatable(ax)
+#     cax = divider.append_axes("right", size="4%", pad=cpad)
+#     cbar = plt.colorbar(im, cax=cax, orientation='vertical')
+#     cbar.ax.tick_params(labelsize=10)
+#     cbar.ax.coords[0].set_ticks_visible(False)
+#     cbar.ax.coords[0].set_ticklabel_visible(False)
+#     cbar.ax.coords[0].grid(False)
+#     cbar.ax.coords[1].grid(False)
+#     cbar.ax.coords[1].set_ticklabel_position('r')
+#     cbar.ax.coords[1].set_ticks_position('r')
+#     cbar.ax.coords[1].set_axislabel_position('r')
+#     if labelax == 'full':
+#         cbar.set_label('Integrated Intensity [K km/s]',fontsize=12)
     # --- Save PDF file
     if outfile is None:
         outfile = 'mom0plot.pdf'
