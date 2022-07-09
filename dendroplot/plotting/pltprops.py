@@ -497,7 +497,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             pltname=[ 'rdv',   'dvflux','areaflux'],
             xlims=[], ylims=[], doline=[], panel=[], ccode=[],
             physnam='physprop', resolve_output='none', 
-            colorcodes=['alpha', 'sigvir']):
+            colorcodes=['alpha', 'sigvir'], noshow=False):
     '''
     Generate a set of summary plots for an astrodendro run
 
@@ -672,7 +672,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
         axes.set_ylabel('Number')
         plt.legend(loc='best',fontsize='medium')
         plt.savefig(join(plotdir,label+'_'+histcol+'.pdf'), bbox_inches='tight')
-        plt.close()
+        if noshow:
+            plt.close()
 
     # ------ Get color code requests
     if isinstance(colorcodes, str):
@@ -798,7 +799,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
         plt.legend(loc='lower right',fontsize='small',scatterpoints=1)
         plt.savefig(join(plotdir,label+'_'+pltname[i]+'_full.pdf'), bbox_inches='tight')
-        plt.close()
+        if noshow:
+            plt.close()
 
         # --- Plot trunks and their descendants
         if len(idsel[0]) > 0:
@@ -829,7 +831,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                 axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_trunks.pdf'), 
                         bbox_inches='tight')
-            plt.close()
+            if noshow:
+                plt.close()
 
         # --- Plot clusters
         if len(idsel[3]) > 0:
@@ -854,7 +857,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                 axes.text(0.05,0.93, subpanel, size=12, transform=axes.transAxes)
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_clusters.pdf'), 
                         bbox_inches='tight')
-            plt.close()
+            if noshow:
+                plt.close()
 
         # ------ Plot all structures, color coded by 3rd variable and binned in quartiles
         if not this_ccode:
@@ -882,7 +886,8 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             shortname = re.sub('_', '', colorcodes[j])
             plt.savefig(join(plotdir,label+'_'+pltname[i]+'_'+shortname+'.pdf'), 
                         bbox_inches='tight')
-            plt.close()
+            if noshow:
+                plt.close()
 
     # ------ Write output files
     tab.write(join(indir, label+'_lfit.tex'), overwrite=True)    

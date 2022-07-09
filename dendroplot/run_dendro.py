@@ -1,9 +1,8 @@
-
 import os
+from os.path import join
 import csv
 import sys
 import numpy as np
-import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.patches import Ellipse
@@ -14,8 +13,8 @@ from astropy import units as u
 from astropy.io import fits
 from astropy.table import Table, Column
 
-def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=None, 
-    redo='n', rfreq=None, verbose=True, **kwargs):
+def run_dendro(label='mycloud', cubefile=None, mom0file=None, 
+    redo='n', rfreq=None, verbose=True, noshow=False, pltdir='plots', **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -31,7 +30,7 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
 
     # Get cube parameters
     sigma = stats.mad_std(hdu3.data[~np.isnan(hdu3.data)])
-    print('Robustly estimated RMS: {:.3f}'.format(sigma))
+    print('\nRobustly estimated RMS: {:.3f}'.format(sigma))
     ppb = 1.133*hd3['bmaj']*hd3['bmin']/(abs(hd3['cdelt1']*hd3['cdelt2']))
     print('Pixels per beam: {:.2f}'.format(ppb))
 
@@ -46,8 +45,8 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
         d.save_to(label+'_dendrogram.hdf5')
 
     # checks/creates directory to place plots
-    if os.path.isdir('plots') == 0:
-        os.makedirs('plots')
+    if not os.path.isdir(pltdir):
+        os.makedirs(pltdir)
 
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
@@ -64,7 +63,9 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
     ax.set_yscale('log')
-    plt.savefig('plots/'+label+'_dendrogram.pdf', bbox_inches='tight')
+    plt.savefig(join(pltdir, label+'_dendrogram.pdf'), bbox_inches='tight')
+    if noshow:
+        plt.close()
 
     #%&%&%&%&%&%&%&%&%&%&%&%&%&%
     #   Generate the catalog
@@ -94,7 +95,7 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
     metadata['beam_minor'] = bmin
 
     cat = ppv_catalog(d, metadata, verbose=verbose)
-    print(cat.info())
+    print(cat.info)
 
     # Add additional properties: Average Peak Tb and Maximum Tb
     srclist = cat['_idx'].tolist()
@@ -165,8 +166,9 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig('plots/'+label+'_trunks_map.pdf', bbox_inches='tight')
-    plt.close()
+    plt.savefig(join(pltdir, label+'_trunks_map.pdf'), bbox_inches='tight')
+    if noshow:
+        plt.close()
 
     # Make a branch list
     branch = [s for s in d.all_structures if s not in d.leaves and s not in d.trunk]
@@ -214,8 +216,9 @@ def run_dendro(criteria=['volume'], label='mycloud', cubefile=None, mom0file=Non
             writer.writerow([val])    
 
     fig.colorbar(im, ax=ax)
-    plt.savefig('plots/'+label+'_leaves_map.pdf', bbox_inches='tight')
-    plt.close()
+    plt.savefig(join(pltdir, label+'_leaves_map.pdf'), bbox_inches='tight')
+    if noshow:
+        plt.close()
 
 
 # -------------------------------------------------------------------------------

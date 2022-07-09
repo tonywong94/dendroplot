@@ -9,47 +9,60 @@ from astropy import constants as const
 from astropy import units as u
 import numpy as np
 import os
+from os.path import join
 import warnings
 import sys
 
-def lte(files = [], tfloor = 8., datainfo = '', tx_method = 'peak', onlywrite = [], indir = ''):
+def lte(files = [], tfloor = 8., tx_method = 'peak', onlywrite = [], 
+        indir = '', outdir = '', outname=None):
+    """
+    Calculate LTE column density from J=2-1 or J=1-0 transitions of 12CO and 13CO.
+
+    Parameters
+    ----------
     # files are in this order: [incube12, incube13, inrms12, inrms13, inmask12]
-    # tx_methods accounted for are 'cube' and 'peak'
-    # datainfo should provide info on what source data is from and possibly a number corresponding to some form of iteration
     
-    # file paths need to be absolute or defined properly in relation to working directory
-#     for f in files:
-#         if os.path.exists(f) == 1:
-#             print('Found {}...'.format(f))
-#             continue
-#         else:
-#             print('File {} does not exist'.format(f))
-#             return
+    tfloor : float, optional
+        Floor (minimum value) to impose on excitation temperature, in K.
+    tx_method : string, optional
+        Method to use for 12CO excitation temperature.
+        'cube': Use the 12CO temperature at each voxel (pixel and channel)
+        'peak': Use the peak 12CO temperature at each pixel
+        Default is 'peak'.
+    indir : string, optional
+        Directory where input files reside.
+        Default: Read from the current directory.
+    outdir : string, optional
+        Directory to write the output files.
+        Default: Write to the current directory.
+    outname : string, optional
+        Basename for output files.  For instance, outname='foo' produces files
+        'foo_peak_tex12.fits.gz', etc.
+        Default: Based on root name of files[0].
+    """
 
     # Declarations of input and output files
-    if (indir != ''):
-        indir = indir.rstrip('/')
-        incube12 = indir + '/' + files[0]
-        incube13 = indir + '/' + files[1]
-        inrms12  = indir + '/' + files[2]
-        inrms13  = indir + '/' + files[3]
-        inmask12 = indir + '/' + files[4]
-    else:
-        incube12 = files[0]
-        incube13 = files[1]
-        inrms12  = files[2]
-        inrms13  = files[3]
-        inmask12 = files[4]
+    incube12 = join(indir, files[0])
+    incube13 = join(indir, files[1])
+    inrms12  = join(indir, files[2])
+    inrms13  = join(indir, files[3])
+    inmask12 = join(indir, files[4])
 
-    outtex12      = datainfo + '_' + tx_method + '_tex12.fits.gz'
-    outtau13      = datainfo + '_' + tx_method + '_tau13.fits.gz'
-    outtau13err   = datainfo + '_' + tx_method + '_tau13err.fits.gz'
-    outtau13pk    = datainfo + '_' + tx_method + '_tau13pk.fits.gz'
-    outn13cube    = datainfo + '_' + tx_method + '_n13cube.fits.gz'
-    outn13cubeerr = datainfo + '_' + tx_method + '_n13cubeerr.fits.gz'
-    outn13col     = datainfo + '_' + tx_method + '_n13col.fits.gz'
-    outn13colerr  = datainfo + '_' + tx_method + '_n13colerr.fits.gz'
-    outsnr13      = datainfo + '_' + tx_method + '_n13snr.fits.gz'
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    if outname is not None:
+        basename = outname
+    else:
+        basename = os.path.basename(files[0]).split('.')[0]
+    outtex12      = join(outdir, basename + '_' + tx_method + '_tex12.fits.gz')
+    outtau13      = join(outdir, basename + '_' + tx_method + '_tau13.fits.gz')
+    outtau13err   = join(outdir, basename + '_' + tx_method + '_tau13err.fits.gz')
+    outtau13pk    = join(outdir, basename + '_' + tx_method + '_tau13pk.fits.gz')
+    outn13cube    = join(outdir, basename + '_' + tx_method + '_n13cube.fits.gz')
+    outn13cubeerr = join(outdir, basename + '_' + tx_method + '_n13cubeerr.fits.gz')
+    outn13col     = join(outdir, basename + '_' + tx_method + '_n13col.fits.gz')
+    outn13colerr  = join(outdir, basename + '_' + tx_method + '_n13colerr.fits.gz')
+    outsnr13      = join(outdir, basename + '_' + tx_method + '_n13snr.fits.gz')
 
     # Load 12CO cube [units K]
     print('\nReading {0}...'.format(incube12))
