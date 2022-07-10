@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-#from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.wcs import WCS
@@ -8,22 +7,20 @@ from astropy.visualization.wcsaxes import SphericalCircle
 import numpy as np
 import matplotlib.colors as mcolors
 from matplotlib.patches import Rectangle
-#plt.rcParams['axes.grid'] = False
 
 # Plot the 12CO and 13CO moment maps side by side.
 
 skel = False
 
 # Get FOV from rms image
-fitsdir = '../products_250/'
-fildir = '../products_250/filfinder/'
-analdir = '../analysis/'
+fitsdir = 'images/'
+fildir  = 'struct/'
 filer = fitsdir+'30Dor_feather_mosaic_12CO_12meter.rms.K.fits.gz'
 rms = fits.getdata(filer)[0]
 fov = rms*0 + 1
 fov[np.isnan(fov)] = 0
 
-for plttyp in ['snrpk', 'mom01', 'mom2', 'lwidth']:
+for plttyp in ['snrpk', 'mom01', 'mom2']:
     if plttyp == 'snrpk':
         file0 = fitsdir+'30Dor_feather_mosaic_12CO_12meter.snrpk.fits.gz'
         file1 = fitsdir+'30Dor_feather_mosaic_13CO_12meter.snrpk.fits.gz'
@@ -42,12 +39,6 @@ for plttyp in ['snrpk', 'mom01', 'mom2', 'lwidth']:
         label = ['$^{12}$CO mom-2', '$^{13}$CO mom-2']
         cmap  = ['jet_r', 'jet_r']
         outfile = '30Dor_12CO_13CO_mom2.pdf'
-    elif plttyp == 'lwidth':
-        file0 = fitsdir+'30Dor_feather_mosaic_12CO_12meter.vwidth.fits.gz'
-        file1 = fitsdir+'30Dor_feather_mosaic_13CO_12meter.vwidth.fits.gz'
-        label = ['$^{12}$CO eff lwidth', '$^{13}$CO eff lwidth']
-        cmap  = ['jet_r', 'jet_r']
-        outfile = '30Dor_12CO_13CO_vwidth.pdf'
 
     im0, hd0 = fits.getdata(file0, header=True)
     im1, hd1 = fits.getdata(file1, header=True)

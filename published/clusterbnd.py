@@ -6,13 +6,14 @@ from os.path import expanduser, join
 from dendroplot.plotting import pltprops, sctplot, std_overlay
 from astropy.io import fits
 
+# Plot associations between 12CO and 13CO dendros.
+# Must first run cluster12_overlap.py.
 # Sensitivity limits calculated in "Tex floor.ipynb" in analysis/lte.
 
 # Which lines
 domos   = ['30Dor_feather_mosaic_']
 dolines = ['12', '13']
 res     = '1p8'
-dofil   = False
 
 # Plotting parameters
 pltcol = ['orange', 'green', 'blue', 'black']
@@ -21,11 +22,10 @@ z      = [3, 4, 5, 6]
 pltms  = [20, 30, 30, 30]
 pltlbl = ['no $^{13}$CO match', '$^{13}$CO dendro match', '$^{13}$CO clump match', 'filament match']
 
-analdir = expanduser('~/Scratch3/30Dor/analysis/')
+dendir = 'struct'
+fildir = 'struct'
 
 for mos in domos:
-    dendir = join(analdir, 'dendro', mos.split('_')[1]+'_250')
-    fildir = join(analdir, 'filfinder')
 
     for line in dolines:
 
@@ -42,9 +42,6 @@ for mos in domos:
             # 12CO clusters with 13CO cluster counterparts
             yesover = fits.getdata(dendir+'/'+mos+res+'_12_clusters_asgn_13clustr_y.fits.gz')
             id_yes = np.intersect1d(pcat['_idx'], np.unique(yesover[yesover>-1]))
-            # 12CO clusters with FilFinder counterparts
-            filover = fits.getdata(fildir+'/'+mos+res+'_12_clusters_asgn_onfil.fits.gz')
-            id_fil = np.intersect1d(pcat['_idx'], np.unique(filover[filover>-1]))
             # 12CO clusters with 13CO dendro counterparts
             dendover = fits.getdata(dendir+'/'+mos+res+'_12_clusters_asgn_13dendro_y.fits.gz')
             id_yes2 = np.intersect1d(pcat['_idx'], np.unique(dendover[dendover>-1]))
@@ -66,10 +63,7 @@ for mos in domos:
         axes.set_aspect('equal')
         if line == '12':
             plt.plot([], [], ' ', label='CO clumps')
-            if dofil:
-                allarr = [id_no, id_den, id_yes, id_fil]
-            else:
-                allarr = [id_no, id_den, id_yes]
+            allarr = [id_no, id_den, id_yes]
             
             for i, arr in enumerate(allarr):
                 xp = pcat.loc[arr][xplot]

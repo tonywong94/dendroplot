@@ -14,7 +14,8 @@ from astropy.io import fits
 from astropy.table import Table, Column
 
 def run_dendro(label='mycloud', cubefile=None, mom0file=None, 
-    redo='n', rfreq=None, verbose=True, noshow=False, pltdir='plots', **kwargs):
+               redo='n', rfreq=None, verbose=True, noshow=False, 
+               plotdir='plots', **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -45,8 +46,8 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
         d.save_to(label+'_dendrogram.hdf5')
 
     # checks/creates directory to place plots
-    if not os.path.isdir(pltdir):
-        os.makedirs(pltdir)
+    if not os.path.isdir(plotdir):
+        os.makedirs(plotdir)
 
     # Plot the tree
     fig = plt.figure(figsize=(14, 8))
@@ -63,7 +64,7 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
     for st in d.leaves:
         p.plot_tree(ax, structure=[st], color='green')
     ax.set_yscale('log')
-    plt.savefig(join(pltdir, label+'_dendrogram.pdf'), bbox_inches='tight')
+    plt.savefig(join(plotdir, label+'_dendrogram.pdf'), bbox_inches='tight')
     if noshow:
         plt.close()
 
@@ -166,7 +167,7 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
     f.close()
 
     fig.colorbar(im, ax=ax)
-    plt.savefig(join(pltdir, label+'_trunks_map.pdf'), bbox_inches='tight')
+    plt.savefig(join(plotdir, label+'_trunks_map.pdf'), bbox_inches='tight')
     if noshow:
         plt.close()
 
@@ -216,7 +217,7 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
             writer.writerow([val])    
 
     fig.colorbar(im, ax=ax)
-    plt.savefig(join(pltdir, label+'_leaves_map.pdf'), bbox_inches='tight')
+    plt.savefig(join(plotdir, label+'_leaves_map.pdf'), bbox_inches='tight')
     if noshow:
         plt.close()
 

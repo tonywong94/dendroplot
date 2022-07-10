@@ -10,18 +10,18 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Calculate the fraction of mass on and off filaments.
+# This should be run after Dendros_on_fils.ipynb
 
-dendir = os.path.expanduser('~/Scratch3/30Dor/analysis/dendro/feather_250/')
-fildir = os.path.expanduser('~/Scratch3/30Dor/analysis/filfinder/')
+analdir = 'struct/'
 
 for line in ['12', '13']:
-    pcat = Table.read(dendir+'30Dor_feather_mosaic_1p8_'+line+
+    pcat = Table.read(analdir+'30Dor_feather_mosaic_1p8_'+line+
                       '_physprop_resolve.txt', format='ascii.ecsv')
     pcat.add_index('_idx')
     for dendrotyp in ['clusters', 'leaves']:
-        asgn_all = dendir+'30Dor_feather_mosaic_1p8_'+line+'_'+dendrotyp+'_asgn.fits.gz'
+        asgn_all = analdir+'30Dor_feather_mosaic_1p8_'+line+'_'+dendrotyp+'_asgn.fits.gz'
         alldat = fits.getdata(asgn_all)
-        asgn_onfil = fildir+'30Dor_feather_mosaic_1p8_'+line+'_'+dendrotyp+'_asgn_onfil.fits.gz'
+        asgn_onfil = analdir+'30Dor_feather_mosaic_1p8_'+line+'_'+dendrotyp+'_asgn_onfil.fits.gz'
         yesover = fits.getdata(asgn_onfil)
         id_all = np.intersect1d(pcat['_idx'], np.unique(alldat[alldat>-1]))
         id_yes = np.intersect1d(pcat['_idx'], np.unique(yesover[yesover>-1]))

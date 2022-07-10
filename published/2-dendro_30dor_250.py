@@ -8,24 +8,20 @@ from dendroplot.plotting import colorcode
 from dendroplot.lte import add_ltemass
 from dendroplot.analysis.calc_phys_props import refdist_redo
 
-# Updated coordinates of R136 on 3 Jan 2022 to match Sabbi+16.
-# 12 Jan 2022: Change alphascale to 1.6
+## Run the dendrogram analysis and calculate physical properties
 
-datadir = os.path.expanduser('~/Scratch3/30Dor/products_250/')
-analdir = os.path.expanduser('~/Scratch3/30Dor/analysis/')
+outdir  = 'dendro/'
 redo = 'n'   # whether to regenerate dendrogram.hdf file
 
-# domos   = ['30Dor_mosaic_', '30Dor_feather_mosaic_']
 domos   = ['30Dor_feather_mosaic_']
 res     = '1p8'
 dolines = ['13', '12']
 
-
 start = datetime.now()
 old_dir = os.getcwd() # returns absolute path
+datadir = old_dir + '/images/'
 
 for mos in domos:
-    outdir  = os.path.join(analdir, 'dendro', mos.split('_')[1]+'_250')
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     try:
@@ -40,19 +36,18 @@ for mos in domos:
             conoise    = datadir + mos + '12CO_12meter.rms.K.fits.gz'
             momfile[i] = datadir + mos + line + 'CO_12meter.mom0.fits.gz'
             label = mos+res+'_'+line
-            run_dendro(criteria=['volume'], label=label, cubefile=cubfile[i], 
-                mom0file=momfile[i], redo=redo)
+            run_dendro(label=label, cubefile=cubfile[i], mom0file=momfile[i], redo=redo)
             find_clusters(criteria=['volume'], label=label, cubefile=cubfile[i])
             calc_phys_props(label=label, cubefile=cubfile[i],
                             copbcor=cub12file, conoise=conoise, 
                             alphascale=1.6, efloor=0.1,
                             refpos=[84.67625,-69.100917])
-            if os.path.exists(analdir+'lte'):
+            if os.path.exists('lte'):
                 n13cube    = mos + 'peak_n13cube.fits.gz'
                 n13cube_uc = mos + 'peak_n13cubeerr.fits.gz'
-                add_ltemass(label=label, n13cub=analdir+'lte/'+n13cube, 
+                add_ltemass(label=label, n13cub='lte/'+n13cube, 
                             i12cub=cub12file, i13cub=cub13file, efloor=0.1,
-                            n13cub_uc=[analdir+'lte/'+n13cube_uc],co13toh2=3e6)
+                            n13cub_uc=['lte/'+n13cube_uc], co13toh2=3e6)
             colorcode(label=label, cubefile=cubfile[i], mom0file=momfile[i], 
                       types=['v_cen'])
             colorcode(label=label, cubefile=cubfile[i], mom0file=momfile[i],

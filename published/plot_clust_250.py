@@ -10,8 +10,8 @@ import matplotlib.colors as mcolors
 
 # Plot the 12CO and 13CO cluster maps side by side.
 
-fitsdir = '../products_250/'
-analdir = '../analysis/'
+fitsdir = 'images/'
+analdir = 'struct/'
 file0 = fitsdir+'30Dor_feather_mosaic_12CO_12meter.mom0.fits.gz'
 hd0 = fits.getheader(file0)
 wcs = WCS(hd0)
@@ -23,16 +23,16 @@ fov[np.isnan(fov)] = 0
 #olays = np.array(wcs.world_to_pixel(SkyCoord(ra=[84.676650]*u.deg, dec=[-69.100933]*u.deg)))
 olays = np.array(wcs.world_to_pixel(SkyCoord(ra=[84.67625, 84.5708]*u.deg, 
                                     dec=[-69.100917, -69.0667]*u.deg)))
-skel = fits.getdata(analdir+'filfinder/30Dor_feather_12CO_fp_80_st_80_at_10_gt_4.skel.fits.gz')
+skel = fits.getdata(analdir+'30Dor_feather_12CO_fp_80_st_80_at_10_gt_4.skel.fits.gz')
 
 fig, axs = plt.subplots(ncols=2, figsize=(18,10), subplot_kw={"projection":wcs})
 
 fig.subplots_adjust(right=0.8, wspace=0.02)
 
 for i, line in enumerate(['12', '13']):
-    clustasgn = fits.getdata(analdir+'dendro/feather_250/30Dor_feather_mosaic_1p8_'
+    clustasgn = fits.getdata(analdir+'30Dor_feather_mosaic_1p8_'
                              +line+'_clusters_asgn.fits.gz')
-    clustlist = analdir+'dendro/feather_250/30Dor_feather_mosaic_1p8_'+line+'_clusters.txt'
+    clustlist = analdir+'30Dor_feather_mosaic_1p8_'+line+'_clusters.txt'
     with open(clustlist, 'r') as data:
         clust_id = []
         clust_co = []
@@ -63,10 +63,6 @@ for i, line in enumerate(['12', '13']):
                  xytext=(-5,-20), ha='right', c='b', size=13)
     axs[i].annotate('Hodge 301', (olays[0][1], olays[1][1]), textcoords="offset points",
                  xytext=(-5,-20), ha='center', c='b', size=13)
-#     print('R136 is at',olays[0][0], olays[1][0])
-#     axs[i].plot(olays[0], olays[1], 'b*', ms=12, zorder=-1)
-#     axs[i].annotate('R136', (olays[0][0], olays[1][0]), textcoords="offset points",
-#                   xytext=(-5,-20), ha='right', c='b', size=13)
     if i == 1:
         axs[i].coords[1].set_ticklabel_visible(False)
     axs[i].coords[0].set_ticklabel(size=14)

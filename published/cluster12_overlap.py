@@ -8,7 +8,7 @@ from astropy.io import fits
 # Loop over 12CO clusters and identify overlaps with (1) 13CO clusters; (2) 13CO dendros.
 # Results are plotted in clusterbnd.py
 
-analdir = os.path.expanduser('~/Scratch3/30Dor/analysis/dendro/feather_250/')
+analdir = 'struct/'
 
 clustr12, hd12 = fits.getdata(analdir+"30Dor_feather_mosaic_1p8_12_clusters_asgn.fits.gz", 
                              header=True)

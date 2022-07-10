@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 
-from os.path import expanduser, join
+from os.path import join
 from dendroplot.plotting import pltprops
 
+## Plot the cloud property correlations
+
 # Which lines
-domos   = ['30Dor_mosaic_', '30Dor_feather_mosaic_']
-dolines = ['12', '13']
+domos   = ['30Dor_feather_mosaic_']
+dolines = ['13', '12']
 res     = '1p8'
 beam    = 1.75
 dv      = 0.25
 
-analdir = expanduser('~/Scratch3/30Dor/analysis/')
+analdir = 'struct/'
 
 for mos in domos:
-    outdir = join(analdir, 'dendro', mos.split('_')[1]+'_250')
-
     for line in dolines:
-        catalog = join(outdir, mos+res+'_'+line+'_full_catalog.txt')
+        catalog = join(analdir, mos+res+'_'+line+'_full_catalog.txt')
         if line == '12':
             pltprops(catalog, dvkms=dv, beam=beam, cmap='jet_r',
                 xplot=['rad_pc_dcon','vrms_k','area_pc2','siglum','area_pc2'],
@@ -28,7 +28,7 @@ for mos in domos:
                 doline=[   True,    True,      True,   False,      True],
                 panel=[   '(a)',    None,      None,    None,      None],
                 colorcodes=['refdist'], lobin_col='salmon', hibin_col='cyan',
-                nbin=10, plotdir=join(outdir,'plots'), resolve_output='decon')
+                nbin=10, plotdir=join(analdir,'plots'), resolve_output='none')
         else:
             pltprops(catalog, dvkms=dv, beam=beam, cmap='jet_r',
                 xplot=['rad_pc_dcon','vrms_k','area_pc2','siglum','siglte'],
@@ -40,5 +40,5 @@ for mos in domos:
                 doline=[   True,    True,      True,   False,   False],
                 panel=[   '(b)',    None,      None,    None,    None],
                 colorcodes=['refdist'], lobin_col='salmon', hibin_col='cyan',
-                nbin=10, plotdir=join(outdir,'plots'), resolve_output='decon')
+                nbin=10, plotdir=join(analdir,'plots'), resolve_output='none')
 

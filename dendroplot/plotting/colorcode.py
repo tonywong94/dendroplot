@@ -209,7 +209,7 @@ def props_coltree(label=None, dendrogram=None, cat=None, cubhd=None,
 # -------------------------------------------------------------------------------
 
 def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None, 
-        types=['v_cen','v_rms','tmax','imean'], pltdir='plots', vmin=None, vmax=None,
+        types=['v_cen','v_rms','tmax','imean'], plotdir='plots', vmin=None, vmax=None,
         lognorm=False, noshow=False, **kwargs):
     # Header info
     hdu3 = fits.open(cubefile)[0]
@@ -232,11 +232,11 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
                     idc.append(int(row[0]))
             subcat = cat[idc]
             props_colmap(dendrogram=d, subcat=subcat, img=img, cubhd=hd3,
-                props=types, prefix=pltdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, 
+                props=types, prefix=plotdir+'/'+label+'_'+set, vmin=vmin, vmax=vmax, 
                 lognorm=lognorm, noshow=noshow, **kwargs)
         except IOError:
             print(label,set,'not found')
     # Plot colored dendrogram
     props_coltree(label=label, dendrogram=d, cat=cat, cubhd=hd3, props=types, 
-        prefix=pltdir+'/'+label, vmin=vmin, vmax=vmax, lognorm=lognorm, noshow=noshow)
+        prefix=plotdir+'/'+label, vmin=vmin, vmax=vmax, lognorm=lognorm, noshow=noshow)
     return
