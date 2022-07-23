@@ -51,7 +51,9 @@ def get_limits(vmin=None, vmax=None, datavals=None, lognorm=False, i=0):
         v0 = vmin[i]
     if vmax is None:
         v1 = np.max(datavals[np.isfinite(datavals)])
-        #v1 = datavals.max()
+        if not v1 > v0:
+            v0 = np.floor(v0)
+            v1 = np.ceil(v1)
     else:
         if not isinstance(vmax, list): vmax = [vmax]
         v1 = vmax[i]
@@ -219,7 +221,7 @@ def colorcode(label='scimes', table='full_catalog', cubefile=None, mom0file=None
     img = hdu2.data
     # Load the dendrogram
     d = Dendrogram.load_from(label+'_dendrogram.hdf5')
-    print('\nOpening '+label+'_'+table+'.txt'+'\n')
+    print('\nOpening '+label+'_'+table+'.txt')
     cat = Table.read(label+'_'+table+'.txt', format='ascii.ecsv')
     # Plot colored ellipses on maps
     for set in ['leaves', 'trunks', 'clusters']:

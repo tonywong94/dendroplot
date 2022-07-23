@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='dendroplot',
-    version='0.5.0',
+    version='0.5.1',
     description='Helper tasks for astrodendro',
     long_description=long_description,
     long_description_content_type="text/markdown",
