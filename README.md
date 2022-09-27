@@ -3,7 +3,7 @@ Python analysis scripts for applying dendrograms to LMC ALMA data, and visualizi
 
 `from dendroplot import run_dendro`
 
-`from dendroplot.analysis import calc_phys_props, find_clusters`
+`from dendroplot.analysis import calc_phys_props, find_clusters, get_response_width`
 
 `from dendroplot.lte import lte, add_ltemass`
 

@@ -88,7 +88,7 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
     else:
         freq = rfreq * u.GHz
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
-    metadata['spatial_scale']  =  hd3['cdelt2'] * 3600. * u.arcsec
+    metadata['spatial_scale']  =  abs(hd3['cdelt2']) * 3600. * u.arcsec
     metadata['velocity_scale'] =  abs(hd3['cdelt3']) * u.meter / u.second
     bmaj = hd3['bmaj']*3600. * u.arcsec # FWHM
     bmin = hd3['bmin']*3600. * u.arcsec # FWHM

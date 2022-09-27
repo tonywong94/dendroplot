@@ -79,7 +79,7 @@ def clustbootstrap(sindices, svalues, meta, bootiter):
 
 def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
         alphascale=1, distpc=5e4, rmstorad=1.91, copbcor=None, conoise=None, 
-        ancfile=None, anclabel=None, refpos=None):
+        ancfile=None, anclabel=None, refpos=None, dv_resp=1):
 
     fwhmfac = np.sqrt(8*np.log(2))
     alphaco = 4.3 * u.solMass * u.s / (u.K * u.km * u.pc**2) # Bolatto+ 13
@@ -111,6 +111,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     cdelt1 = abs(hd3['cdelt1']) * 3600. * u.arcsec
     cdelt2 = abs(hd3['cdelt2']) * 3600. * u.arcsec
     deltav = abs(hd3['cdelt3']) / 1000. * u.km / u.s
+    sigvchan = deltav/np.sqrt(2*np.pi)
     metadata['wavelength'] = freq.to(u.m,equivalencies=u.spectral())
     metadata['spatial_scale']  =  cdelt2
     metadata['velocity_scale'] =  deltav
@@ -158,10 +159,8 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
         ancdata,anchd = getdata(ancfile, header=True)
 
     # ---- estimate property errors and flux in ancillary image
-#     emaj, emin, epa, evrms, errms, errms_d, eaxra, eflux, emvir, emvir_d, \
-#           ealpha, tb12, ancmean, ancrms = [np.zeros(len(srclist)) for _ in range(14)]
-    emaj, emin, epa, evrms, errms, errms_d, eaxra, eflux, \
-          tb12, ancmean, ancrms = [np.zeros(len(srclist)) for _ in range(11)]
+    emaj, emin, epa, evrms, evrms_d, errms, errms_d, eaxra, eflux, \
+          tb12, ancmean, ancrms = [np.zeros(len(srclist)) for _ in range(12)]
     print("Calculating property errors...")
     for j, clust in enumerate(srclist):
         if j % 10 == 1:
@@ -179,9 +178,13 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
         # plt.savefig('emmajs_histo.pdf', bbox_inches='tight')
         bootmaj    = emmajs * u.arcsec
         bootmin    = emmins * u.arcsec
-        bootvrms   = (emomvs * u.m/u.s).to(u.km/u.s)
         bootflux   = emom0s * u.Jy
         bootpa     = pas * u.deg
+        bootvrms   = (emomvs * u.km/u.s)
+        # Deconvolve channel width
+        valid = (bootvrms > dv_resp*sigvchan)
+        bootvrms_d = np.full_like(bootvrms, np.nan)
+        bootvrms_d[valid] = np.sqrt(bootvrms[valid]**2-(dv_resp*sigvchan)**2)
         # Deconvolve beam from bootstrap results
         bootmaj_d, bootmin_d, bootpa_d = deconvolve_gauss(bootmaj, bootmin, bootpa, 
                                                           beam_maj, beam_min, bpa)
@@ -200,6 +203,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
         emin[j]    = indfac * mad_std(bootmin)    / np.median(bootmin)
         epa[j]     = indfac * mad_std(bootpa)     / np.median(bootpa)
         evrms[j]   = indfac * mad_std(bootvrms)   / np.median(bootvrms)
+        evrms_d[j] = indfac * mad_std(bootvrms_d, ignore_nan=True) / np.nanmedian(bootvrms_d)
         errms[j]   = indfac * mad_std(bootrrms)   / np.median(bootrrms)    
         errms_d[j] = indfac * mad_std(bootrrms_d, ignore_nan=True) / np.nanmedian(bootrrms_d)    
         eaxra[j]   = indfac * mad_std(bootaxrat)  / np.median(bootaxrat)
@@ -234,10 +238,12 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     # ---- report the median uncertainties
     print( "The median fractional error in rad_pc is {:2.4f}"
         .format(np.nanmedian(errms)) )
-    print( "The median fractional error in rad_decon_pc is {:2.4f}"
+    print( "The median fractional error in rad_pc_dcon is {:2.4f}"
         .format(np.nanmedian(errms_d)) )
     print( "The median fractional error in vrms_k is {:2.4f}"
         .format(np.nanmedian(evrms)) )
+    print( "The median fractional error in vrms_k_dcon is {:2.4f}"
+        .format(np.nanmedian(evrms_d)) )
     print( "The median fractional error in mlumco is {:2.4f}"
         .format(np.nanmedian(eflux)) )
     
@@ -247,6 +253,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
         errms[errms < efloor]     = efloor
         errms_d[errms_d < efloor] = efloor
         evrms[evrms < efloor]     = efloor
+        evrms_d[evrms_d < efloor] = efloor
         eflux[eflux < efloor]     = efloor
 
     # ---- calculate the physical properties
@@ -259,6 +266,10 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
                    u.pc, equivalencies=u.dimensionless_angles())
     rad_pc_dcon = rmstorad * rms_pc_dcon
     v_rms   = cat['v_rms'].to(u.km/u.s)
+    # Deconvolve the linewidth (new 25-sep-2022)
+    valid = (v_rms > dv_resp*sigvchan)
+    v_rms_dcon = np.full_like(v_rms, np.nan)
+    v_rms_dcon[valid] = np.sqrt(v_rms[valid]**2 - (dv_resp*sigvchan)**2)
     axrat   = cat['minor_sigma'] / cat['major_sigma']
     ellarea = (cat['area_ellipse']*dist**2).to(
                u.pc**2,equivalencies=u.dimensionless_angles())
@@ -275,7 +286,7 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     siglum = mlumco / xctarea
     # Virial mass using Rosolowsky+ 08
     mvir   = (5*rmstorad*v_rms**2*rms_pc/const.G).to(u.solMass)
-    mvir_d = (5*rmstorad*v_rms**2*rms_pc_dcon/const.G).to(u.solMass)
+    mvir_d = (5*rmstorad*v_rms_dcon**2*rms_pc_dcon/const.G).to(u.solMass)
     # Prefer deconvolved values for virial calculations
     sigvir = mvir_d / xctarea
     alpha  = mvir_d / mlumco
@@ -283,9 +294,10 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     errms[np.isnan(rms_pc)] = np.nan
     errms_d[np.isnan(rad_pc_dcon)] = np.nan
     evrms[np.isnan(v_rms)] = np.nan
+    evrms_d[np.isnan(v_rms_dcon)] = np.nan
     # Standard error propagation for products and ratios
     emvir    = np.sqrt(2*evrms**2 + errms**2)
-    emvir_d  = np.sqrt(2*evrms**2 + errms_d**2)
+    emvir_d  = np.sqrt(2*evrms_d**2 + errms_d**2)
     ealpha   = np.sqrt(eflux**2 + emvir_d**2)
 
     # ---- calculate the projected distance from the reference position in arcsec
@@ -303,6 +315,8 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     ptab['e_rad_pc_dcon']  = Column(errms_d, description='frac error in deconvolved radius')
     ptab['vrms_k']    = Column(v_rms, description='rms linewidth in km/s')
     ptab['e_vrms_k']  = Column(evrms, description='frac error in linewidth')
+    ptab['vrms_k_dcon'] = Column(v_rms_dcon, description='deconvolved rms linewidth in km/s')
+    ptab['e_vrms_k_dcon']  = Column(evrms_d, description='frac error in deconvolved linewidth')
     ptab['axratio']   = Column(axrat, unit='', description='minor to major axis ratio')
     ptab['e_axratio'] = Column(eaxra, description='frac error in axis ratio')
     if copbcor is not None and conoise is not None:
@@ -312,9 +326,9 @@ def calc_phys_props(label='pcc_12', cubefile=None, boot_iter=100, efloor=0,
     ptab['e_mlumco']  = Column(eflux, description='frac error in luminous mass')
     ptab['siglum']    = Column(siglum, description='average surface density from mlumco')
     ptab['e_siglum']  = Column(eflux, description='same as e_mlumco')
-    ptab['mvir_raw']  = Column(mvir, description='virial mass using measured radius')
+    ptab['mvir_raw']  = Column(mvir, description='virial mass using measured radius and lwidth')
     ptab['e_mvir_raw']= Column(emvir, description='frac error in mvir_raw')
-    ptab['mvir']      = Column(mvir_d, description='virial mass using deconvolved radius')
+    ptab['mvir']      = Column(mvir_d, description='virial mass using deconvolved radius and lwidth')
     ptab['e_mvir']    = Column(emvir_d, description='frac error in virial mass')
     ptab['sigvir']    = Column(sigvir, description='virial surface density from mvir')
     ptab['e_sigvir']  = Column(emvir_d, description='same as e_mvir')

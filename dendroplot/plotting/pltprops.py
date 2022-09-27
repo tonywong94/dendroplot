@@ -250,7 +250,8 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel
         'sigvir':'$\Sigma$, virial',
         'rad_pc':'equivalent raw radius',
         'rad_pc_dcon':'equivalent radius',
-        'vrms_k':'rms linewidth',
+        'vrms_k':'raw rms linewidth',
+        'vrms_k_dcon':'rms linewidth',
         'area_pc2':'projected area',
        }
     axlbl=['','']
@@ -274,7 +275,7 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel
             axes.axhspan(ylims[0], np.log10(shade[axvar[1]]), fc='lightgray', 
                          alpha=0.3, lw=0)
     # Solomon et al. size-linewidth relation
-    if axvar[0].startswith('rad_') and axvar[1] == 'vrms_k':
+    if axvar[0].startswith('rad_pc') and axvar[1].startswith('vrms_k'):
         xmod = np.linspace(xlims[0],xlims[1],20)
         ymod = np.log10(0.72) + 0.5*xmod
         axes.plot(xmod, ymod, linestyle='-', color='r', lw=4, alpha=0.5, 
@@ -282,7 +283,7 @@ def std_overlay(cat, axvar, xlims=None, ylims=None, shade=None, axes=None, panel
         axes.text((xlims[1]-0.05), (xlims[1]/2-0.23), 'S87', 
             horizontalalignment='right', color='r', rotation=25)
     # Lines of constant surface density and volume density
-    if axvar[0] == 'rad_pc' and axvar[1].startswith('m'):
+    if axvar[0].startswith('rad_pc') and axvar[1].startswith('m'):
         xmod = np.linspace(xlims[0],xlims[1],20)
         # 1, 10, and 100 Msol/pc^2
         axes.plot(xmod, np.log10(np.pi)+2*xmod+0, linestyle=':', color='k', 
@@ -570,7 +571,9 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
                u.pc, equivalencies=u.dimensionless_angles()))**2
     # Minimum line width is channel width (~FWHM) divided by 2.35
     dvlim = deltav.value/np.sqrt(8*np.log(2))
-    shade = {'rad_pc': radlim.value, 'vrms_k': dvlim, 'area_pc2': arealim.value}
+    shade = {'rad_pc': radlim.value, 'rad_pc_dcon': radlim.value,
+             'vrms_k': dvlim, 'vrms_k_dcon': dvlim,
+             'area_pc2': arealim.value}
 
     # Create directory to place plots
     if not os.path.isdir(plotdir):
