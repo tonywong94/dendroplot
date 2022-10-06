@@ -15,7 +15,8 @@ from astropy.table import Table, Column
 
 def run_dendro(label='mycloud', cubefile=None, mom0file=None, 
                redo='n', rfreq=None, verbose=True, noshow=False, 
-               plotdir='plots', **kwargs):
+               plotdir='plots', sigma=None, min_svalue=3,
+               min_sdelta=2.5, min_beam=2, **kwargs):
 
     #%&%&%&%&%&%&%&%&%&%&%&%
     #    Make dendrogram
@@ -30,8 +31,9 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
                 hd3.remove(key)
 
     # Get cube parameters
-    sigma = stats.mad_std(hdu3.data[~np.isnan(hdu3.data)])
-    print('\nRobustly estimated RMS: {:.3f}'.format(sigma))
+    if sigma is None:
+        sigma = stats.mad_std(hdu3.data[~np.isnan(hdu3.data)])
+        print('\nRobustly estimated RMS: {:.3f}'.format(sigma))
     ppb = 1.133*hd3['bmaj']*hd3['bmin']/(abs(hd3['cdelt1']*hd3['cdelt2']))
     print('Pixels per beam: {:.2f}'.format(ppb))
 
@@ -41,8 +43,8 @@ def run_dendro(label='mycloud', cubefile=None, mom0file=None,
         d = Dendrogram.load_from(label+'_dendrogram.hdf5')
     else:
         print('Make dendrogram from the full cube')
-        d = Dendrogram.compute(hdu3.data, min_value=3*sigma,
-            min_delta=2.5*sigma, min_npix=2*ppb, verbose=verbose)
+        d = Dendrogram.compute(hdu3.data, min_value=min_svalue*sigma,
+            min_delta=min_sdelta*sigma, min_npix=min_beam*ppb, verbose=verbose)
         d.save_to(label+'_dendrogram.hdf5')
 
     # checks/creates directory to place plots
