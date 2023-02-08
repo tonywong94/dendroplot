@@ -18,7 +18,6 @@ To get started, please see the sample notebook in `example` and the various scri
 - [astropy](https://astropy.org)
 - [astrodendro](https://github.com/tonywong94/astrodendro) (fork by Tony Wong)
 - [scimes](https://github.com/tonywong94/SCIMES) (fork by Tony Wong)
-- [kapteyn](https://www.astro.rug.nl/software/kapteyn/)
 
 ## Installation
 

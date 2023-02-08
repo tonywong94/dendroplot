@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='dendroplot',
-    version='0.6.0',
+    version='0.7.0',
     description='Helper tasks for astrodendro',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -15,7 +15,6 @@ setup(name='dendroplot',
                         'astropy',
                         'radio_beam',
                         'spectral_cube',
-                        'kapteyn',
                         'astrodendro'],
     url='https://github.com/tonywong94/dendroplot',
     download_url = 'https://github.com/tonywong94/dendroplot/archive/refs/tags/v0.5.0.tar.gz', 

@@ -12,7 +12,6 @@ from astropy import units as u
 from astropy import constants as const
 from astropy.table import Table, Column
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-from kapteyn import kmpfit
 
 params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
 plt.rcParams.update(params)
@@ -356,7 +355,32 @@ def residuals(p, data):
     d = wi*(y-model(p,x))
     return d
 
-def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
+def confidence_band(xmod, dfdp, confprob, model, odrout):
+    '''
+    Plot confidence band as discussed in kapteyn documentation:
+    https://www.astro.rug.nl/software/kapteyn/kmpfittutorial.html#confidence-and-prediction-intervals
+    '''
+    alpha = 1.0 - confprob
+    prb = 1.0 - alpha/2
+    C = odrout.cov_beta
+    p = odrout.beta
+    n = len(p)
+    N = len(xmod)
+    dof = N - n
+    rchi2_min = odrout.res_var
+    df2 = np.zeros(N)
+    for j in range(n):
+        for k in range(n):
+            df2 += dfdp[j] * dfdp[k] * C[j,k]
+    df = np.sqrt(rchi2_min * df2)
+    ymod = model(p, xmod)
+    tval = stats.t.ppf(prb, dof)
+    delta = tval * df
+    upperband = ymod + delta
+    lowerband = ymod - delta
+    return ymod, upperband, lowerband
+    
+def linefitting(x, y, xerr=None, yerr=None, color='b', prob=0.95,
                 nbootstrap=0, doline=True, zorder=1, parprint=True, xlims=None):
     '''
     Perform linear fitting using kmpfit's effective variance method
@@ -397,7 +421,7 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
         fitted intercept
     c_err : float
         uncertainty in intercept.  Based on bootstrap if nbootstrap > 0.
-    fitobj.rchi2_min : float
+    rchi2_min : float
         reduced chi-squared of the fit.
     yscat : float
         rms of the residual (data - model)
@@ -418,17 +442,26 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
     print("\nLineregress parameters: {:.2f} + x*({:.2f}+/-{:.2f})".format(
            a, b, std_err))
     # --- kmpfit approach
-    fitobj = kmpfit.Fitter(residuals=residuals, data=(xfit, yfit, xerrfit, yerrfit))
-    fitobj.fit(params0=[a, b])
-    print("\n======== Results kmpfit with effective variance =========")
-    print("Fitted parameters:      ", fitobj.params)
-    print("Covariance errors:      ", fitobj.xerror)
-    print("Standard errors:        ", fitobj.stderr)
-    print("Chi^2 min:              ", fitobj.chi2_min)
-    print("Reduced Chi^2:          ", fitobj.rchi2_min)
-    print("Status Message:", fitobj.message)
-    c, d = fitobj.params
-    c_err, d_err = fitobj.stderr
+#     fitobj = kmpfit.Fitter(residuals=residuals, data=(xfit, yfit, xerrfit, yerrfit))
+#     fitobj.fit(params0=[a, b])
+#     print("\n======== Results kmpfit with effective variance =========")
+#     print("Fitted parameters:      ", fitobj.params)
+#     print("Covariance errors:      ", fitobj.xerror)
+#     print("Standard errors:        ", fitobj.stderr)
+#     print("Chi^2 min:              ", fitobj.chi2_min)
+#     print("Reduced Chi^2:          ", fitobj.rchi2_min)
+#     print("Status Message:", fitobj.message)
+#     c, d = fitobj.params
+#     c_err, d_err = fitobj.stderr
+    # --- scipy ODR approach
+    linear = odr.Model(model)
+    mydata = odr.RealData(x, y, sx=xerr, sy=yerr)
+    myodr  = odr.ODR(mydata, linear, beta0=[a,b])
+    myoutput = myodr.run()
+    print("\n======== Results from scipy.odr =========")
+    myoutput.pprint()
+    c, d = myoutput.beta
+    c_err, d_err = myoutput.sd_beta
     yscat = np.std(yfit-model([c, d], xfit))
     # --- Run the bootstrap if requested
     if nbootstrap > 0:
@@ -450,22 +483,16 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
                 print("All elements are the same. Invalid sample.")
                 print(xfit, yfit)
             else:
-                fitobj.fit(params0=[a, b])
-                offs, slope = fitobj.params
-                slopes.append(slope)
-                offsets.append(offs)
+                bootdata = odr.RealData(xfit, yfit, sx=xerrfit, sy=yerrfit)
+                bootodr  = odr.ODR(bootdata, linear, beta0=[a,b])
+                bootoutput = bootodr.run()
+                slopes.append(myoutput.beta[1])
+                offsets.append(myoutput.beta[0])
         slopes = np.array(slopes) - d
         offsets = np.array(offsets) - c
         d_err = slopes.std()
         c_err = offsets.std()
         print("Bootstrap errors:      ", c_err, d_err)
-    # --- scipy ODR approach
-    linear = odr.Model(model)
-    mydata = odr.RealData(x, y, sx=xerr, sy=yerr)
-    myodr  = odr.ODR(mydata, linear, beta0=[a,b])
-    myoutput = myodr.run()
-    print("\n======== Results from scipy.odr =========")
-    myoutput.pprint()
     # Plot the results
     axes = plt.gca()
     if doline == True:
@@ -475,10 +502,10 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
         ymod = model([c, d], xmod)
         axes.plot(xmod, ymod, linestyle='--', color=color, zorder=zorder)
         dfdp = [1, xmod]
-        ydummy, upperband, lowerband = fitobj.confidence_band(xmod,dfdp,prob,model)
+        ydummy, upperband, lowerband = confidence_band(xmod,dfdp,prob,model,myoutput)
         verts = list(zip(xmod, lowerband)) + list(zip(xmod[::-1], upperband[::-1]))
-        poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3) 
-#            label="{:g}% conf.".format(prob*100))
+        poly = Polygon(verts, closed=True, fc='c', ec='c', alpha=0.3,
+            label="{:g}% conf.".format(prob*100))
         axes.add_patch(poly)
     # Overlay the results
     if parprint == True:
@@ -486,7 +513,7 @@ def linefitting(x, y, xerr=None, yerr=None, color='b', prob=.95,
             d_err,size=10,transform=axes.transAxes)
         axes.text(0.03,0.90,'$a_0$ = $%4.2f$ ' % c + u'\u00B1' + ' $%4.2f$' % 
             c_err,size=10,transform=axes.transAxes)
-    return d, d_err, c, c_err, fitobj.rchi2_min, yscat
+    return d, d_err, c, c_err, myoutput.res_var, yscat
 
 # -------------------------------------------------------------------------------
 
@@ -498,7 +525,7 @@ def pltprops(catalog, plotdir='plots', distpc=5e4, dvkms=0.2, beam=2,
             pltname=[ 'rdv',   'dvflux','areaflux'],
             xlims=[], ylims=[], doline=[], panel=[], ccode=[],
             physnam='physprop', resolve_output='none', 
-            colorcodes=['alpha', 'sigvir'], noshow=False):
+            colorcodes=['alpha', 'sigvir'], noshow=True):
     '''
     Generate a set of summary plots for an astrodendro run
 
