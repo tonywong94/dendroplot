@@ -14,7 +14,8 @@ from matplotlib.colors import LogNorm, PowerNorm
 ## Also generates assignment cubes, a tree plot, and a cluster map.
 
 def find_clusters(label='pcc_12', criteria=['volume'], doellipse=False, 
-                  plotdir='plots', cubefile=None, rms=np.nan, noshow=False):
+                  plotdir='plots', cubefile=None, rms=np.nan, noshow=False,
+                  **kwargs):
 
     if not os.path.isdir(plotdir):
         try:
@@ -29,8 +30,9 @@ def find_clusters(label='pcc_12', criteria=['volume'], doellipse=False,
     # ---- load the cube and extract the metadata
     cubedata, hd3 = fits.getdata(cubefile, header=True)
 
-    dclust = SpectralCloudstering(d, cat, criteria=criteria, save_branches=True, 
-                                  rms=rms, header=hd3)
+    dclust = SpectralCloudstering(d, cat, criteria=criteria, save_branches=True,
+                                  rms=rms, header=hd3,
+                                 **kwargs)
     dclust.showdendro(savefile=plotdir+'/'+label+'_dendrogram_clust.pdf')
 
     clusts = np.array(dclust.clusters)
