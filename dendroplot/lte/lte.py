@@ -13,7 +13,7 @@ from os.path import join
 import warnings
 import sys
 
-def lte(files = [], tfloor = 8., tx_method = 'peak', onlywrite = [], 
+def lte(files = [], tfloor = 8., bff = 1., tx_method = 'peak', onlywrite = [], 
         indir = '', outdir = '', outname=None):
     """
     Calculate LTE column density from J=2-1 or J=1-0 transitions of 12CO and 13CO.
@@ -24,6 +24,9 @@ def lte(files = [], tfloor = 8., tx_method = 'peak', onlywrite = [],
     
     tfloor : float, optional
         Floor (minimum value) to impose on excitation temperature, in K.
+    bff: float, optional
+        Beam filling factor, used in tx_method='peak' mode. 
+        Currently uses the same value for the 12CO and 13CO lines
     tx_method : string, optional
         Method to use for 12CO excitation temperature.
         'cube': Use the 12CO temperature at each voxel (pixel and channel)
@@ -109,6 +112,7 @@ def lte(files = [], tfloor = 8., tx_method = 'peak', onlywrite = [],
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 t12 = np.nanmax(t12cube, axis = 0)
+                t12 *= bff
             hdtx = hd2d
             t12[mask2d] = np.nan
         elif tx_method == 'cube':
@@ -136,6 +140,7 @@ def lte(files = [], tfloor = 8., tx_method = 'peak', onlywrite = [],
     # Load 13CO cube [units K]
     print('\nReading {0}...'.format(incube13))
     t13, hd3d = fits.getdata(incube13, header = True)
+    t13 *= bff
     if 'RESTFREQ' in hd3d.keys():
         freq13 = hd3d['RESTFREQ'] * u.Hz
     elif 'RESTFRQ' in hd3d.keys():
