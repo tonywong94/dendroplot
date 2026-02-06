@@ -140,7 +140,7 @@ def lte(files = [], tfloor = 8., bff = 1., tx_method = 'peak', onlywrite = [],
     # Load 13CO cube [units K]
     print('\nReading {0}...'.format(incube13))
     t13, hd3d = fits.getdata(incube13, header = True)
-    t13 /= bff
+    t13 *= bff
     if 'RESTFREQ' in hd3d.keys():
         freq13 = hd3d['RESTFREQ'] * u.Hz
     elif 'RESTFRQ' in hd3d.keys():
